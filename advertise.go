@@ -2,12 +2,23 @@ package ssdp
 
 // Advertiser is a server to advertise a service.
 type Advertiser struct {
+	st       string
+	usn      string
+	location string
+	server   string
+	maxAge   int
 }
 
 // Advertise starts advertisement of service.
 func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
 	// TODO:
-	return nil, nil
+	return &Advertiser{
+		st:       st,
+		usn:      usn,
+		location: location,
+		server:   server,
+		maxAge:   maxAge,
+	}, nil
 }
 
 // Close stops advertisement.
