@@ -16,7 +16,7 @@ cyclo:
 
 report:
 	@echo "misspell"
-	@find . -name *.go | xargs misspell
+	@find . -name "*.go" | xargs misspell
 	@echo ""
 	-gocyclo -over 14 -avg .
 	@echo ""
