@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -21,15 +23,25 @@ type Service struct {
 	maxAge *int
 }
 
+var rxMaxAge = regexp.MustCompile(`\bmax-age\s*=\s*(\d+)\b`)
+
+func extractMaxAge(s string, value int) int {
+	v := value
+	if m := rxMaxAge.FindStringSubmatch(s); m != nil {
+		i64, err := strconv.ParseInt(m[1], 10, 32)
+		if err == nil {
+			v = int(i64)
+		}
+	}
+	return v
+}
+
+// MaxAge extracts "max-age" value from "CACHE-CONTROL" property.
 func (s *Service) MaxAge() int {
-	if s.maxAge != nil {
-		return *s.maxAge
+	if s.maxAge == nil {
+		s.maxAge = new(int)
+		*s.maxAge = extractMaxAge(s.RawHeader.Get("CACHE-CONTROL"), -1)
 	}
-	s.maxAge = new(int)
-	*s.maxAge = -1
-	if v := s.RawHeader.Get("CACHE-CONTROL"); v != "" {
-	}
-	// TODO: parse CACHE-CONTROL
 	return *s.maxAge
 }
 
