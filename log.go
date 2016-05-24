@@ -1,13 +1,12 @@
 package ssdp
 
-import (
-	"io/ioutil"
-	"log"
-)
+import "log"
 
 // Logger is default logger for SSDP module.
-var Logger = log.New(ioutil.Discard, "", log.LstdFlags|log.Lmicroseconds)
+var Logger *log.Logger
 
 func logf(s string, a ...interface{}) {
-	Logger.Printf(s, a...)
+	if Logger != nil {
+		Logger.Printf(s, a...)
+	}
 }

@@ -14,13 +14,20 @@ import (
 
 // Service is discovered service.
 type Service struct {
-	SearchType string
-	USN        string
-	Location   string
-	Server     string
-	RawHeader  http.Header
+	// Type is a property of "ST"
+	Type string
 
-	maxAge *int
+	// USN is a property of "USN"
+	USN string
+
+	// Location is a property of "LOCATION"
+	Location string
+
+	// Server is a property of "SERVER"
+	Server string
+
+	rawHeader http.Header
+	maxAge    *int
 }
 
 var rxMaxAge = regexp.MustCompile(`\bmax-age\s*=\s*(\d+)\b`)
@@ -40,15 +47,28 @@ func extractMaxAge(s string, value int) int {
 func (s *Service) MaxAge() int {
 	if s.maxAge == nil {
 		s.maxAge = new(int)
-		*s.maxAge = extractMaxAge(s.RawHeader.Get("CACHE-CONTROL"), -1)
+		*s.maxAge = extractMaxAge(s.rawHeader.Get("CACHE-CONTROL"), -1)
 	}
 	return *s.maxAge
 }
 
+// Header returns all properties in response of search.
+func (s *Service) Header() http.Header {
+	return s.rawHeader
+}
+
+const (
+	// All is a search type to search all services and devices.
+	All = "ssdp:all"
+
+	// RootDevice is a search type to search UPnP root devices.
+	RootDevice = "upnp:rootdevice"
+)
+
 // Search searchs services by SSDP.
-func Search(searchType string, waitSec int) ([]Service, error) {
+func Search(searchType string, waitSec int, localAddr string) ([]Service, error) {
 	// prepare parameters.
-	laddr, err := net.ResolveUDPAddr("udp4", "0.0.0.0:0")
+	laddr, err := net.ResolveUDPAddr("udp4", localAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -75,13 +95,15 @@ func Search(searchType string, waitSec int) ([]Service, error) {
 	h := func(a net.Addr, d []byte) error {
 		srv, err := parseService(a, d)
 		if err != nil {
-			logf("invalid search response: %s", err)
+			logf("invalid search response from %s: %s", a.String(), err)
 			return nil
 		}
 		list = append(list, *srv)
+		logf("search response from %s: %s", a.String(), srv.USN)
 		return nil
 	}
-	if err := readPackets(conn, time.Duration(waitSec), h); err != nil {
+	d := time.Second * time.Duration(waitSec)
+	if err := readPackets(conn, d, h); err != nil {
 		return nil, err
 	}
 
@@ -114,10 +136,10 @@ func parseService(addr net.Addr, data []byte) (*Service, error) {
 	}
 	defer resp.Body.Close()
 	return &Service{
-		SearchType: resp.Header.Get("ST"),
-		USN:        resp.Header.Get("USN"),
-		Location:   resp.Header.Get("LOCATION"),
-		Server:     resp.Header.Get("SERVER"),
-		RawHeader:  resp.Header,
+		Type:      resp.Header.Get("ST"),
+		USN:       resp.Header.Get("USN"),
+		Location:  resp.Header.Get("LOCATION"),
+		Server:    resp.Header.Get("SERVER"),
+		rawHeader: resp.Header,
 	}, nil
 }
