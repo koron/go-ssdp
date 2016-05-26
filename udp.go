@@ -48,7 +48,7 @@ func listen(localAddr string) (*net.UDPConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	// configure packet.
+	// TODO: configure socket to use with multicast.
 	pc := ipv4.NewPacketConn(conn)
 	n, err := pc.MulticastLoopback()
 	if err != nil {
