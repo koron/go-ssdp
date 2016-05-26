@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sync"
 )
 
 // Monitor monitors SSDP's alive and byebye messages.
@@ -14,6 +15,7 @@ type Monitor struct {
 	alive AliveHandler
 	bye   ByeHandler
 	conn  net.PacketConn
+	wg    sync.WaitGroup
 }
 
 // NewMonitor creates a new Monitor.
@@ -33,7 +35,11 @@ func NewMonitor(alive AliveHandler, bye ByeHandler) (*Monitor, error) {
 		bye:   bye,
 		conn:  conn,
 	}
-	go m.serve()
+	m.wg.Add(1)
+	go func() {
+		m.serve()
+		m.wg.Done()
+	}()
 	return m, nil
 }
 
@@ -92,6 +98,7 @@ func (m *Monitor) Close() error {
 	if m.conn != nil {
 		m.conn.Close()
 		m.conn = nil
+		m.wg.Wait()
 	}
 	return nil
 }
