@@ -37,7 +37,7 @@ func readPackets(conn *net.UDPConn, timeout time.Duration, h packetHandler) erro
 	}
 }
 
-func listen(localAddr string) (*net.UDPConn, error) {
+func multicastDial(localAddr string) (*net.UDPConn, error) {
 	// prepare parameters.
 	laddr, err := net.ResolveUDPAddr("udp4", localAddr)
 	if err != nil {

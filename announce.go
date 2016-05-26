@@ -8,8 +8,8 @@ import (
 
 // AnnounceAlive sends ssdp:alive message.
 func AnnounceAlive(nt, usn, location, server string, maxAge int, localAddr string) error {
-	// listen UDP packet.
-	conn, err := listen(localAddr)
+	// dial multicast UDP packet.
+	conn, err := multicastDial(localAddr)
 	if err != nil {
 		return err
 	}
@@ -46,8 +46,8 @@ func buildAlive(raddr net.Addr, nt, usn, location, server string, maxAge int) ([
 
 // AnnounceBye sends ssdp:byebye message.
 func AnnounceBye(nt, usn, localAddr string) error {
-	// listen UDP packet.
-	conn, err := listen(localAddr)
+	// dial multicast UDP packet.
+	conn, err := multicastDial(localAddr)
 	if err != nil {
 		return  err
 	}
