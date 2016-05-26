@@ -128,6 +128,7 @@ func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 		fmt.Fprintf(b, "SERVER: %s\r\n", server)
 	}
 	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
+	b.WriteString("\r\n")
 	return b.Bytes(), nil
 }
 
