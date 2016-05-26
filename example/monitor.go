@@ -24,13 +24,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for {}
+	for {
+	}
 }
 
 func aliveHandler(m *ssdp.Alive) {
-	log.Printf("Alive: %#v", m)
+	log.Printf("Alive: From=%s Type=%s USN=%s Location=%s Server=%s MaxAge=%d",
+		m.From.String(), m.Type, m.USN, m.Location, m.Server, m.MaxAge())
 }
 
 func byeHandler(m *ssdp.Bye) {
-	log.Printf("Bye: %#v", m)
+	log.Printf("Bye: From=%s Type=%s USN=%s", m.From.String(), m.Type, m.USN)
 }
