@@ -3,6 +3,8 @@ package ssdp
 import (
 	"net"
 	"time"
+
+	"golang.org/x/net/ipv4"
 )
 
 var multicastAddr4 *net.UDPAddr
@@ -33,4 +35,26 @@ func readPackets(conn *net.UDPConn, timeout time.Duration, h packetHandler) erro
 			return err
 		}
 	}
+}
+
+func listen(localAddr string) (*net.UDPConn, error) {
+	// prepare parameters.
+	laddr, err := net.ResolveUDPAddr("udp4", localAddr)
+	if err != nil {
+		return nil, err
+	}
+	// connect.
+	conn, err := net.ListenUDP("udp4", laddr)
+	if err != nil {
+		return nil, err
+	}
+	// configure packet.
+	pc := ipv4.NewPacketConn(conn)
+	n, err := pc.MulticastLoopback()
+	if err != nil {
+		logf("MulticastLoopback() failed")
+	} else {
+		logf("MulticastLoopback=%t\n", n)
+	}
+	return conn, err
 }

@@ -67,14 +67,8 @@ const (
 
 // Search searchs services by SSDP.
 func Search(searchType string, waitSec int, localAddr string) ([]Service, error) {
-	// prepare parameters.
-	laddr, err := net.ResolveUDPAddr("udp4", localAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	// connect.
-	conn, err := net.ListenUDP("udp4", laddr)
+	// listen UDP packet.
+	conn, err := listen(localAddr)
 	if err != nil {
 		return nil, err
 	}
