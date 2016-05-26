@@ -1,6 +1,7 @@
 package ssdp
 
 import (
+	"errors"
 	"net"
 	"time"
 
@@ -57,4 +58,53 @@ func multicastDial(localAddr string) (*net.UDPConn, error) {
 		logf("MulticastLoopback=%t\n", n)
 	}
 	return conn, err
+}
+
+func multicastListen(localAddr string) (net.PacketConn, error) {
+	conn, err := net.ListenPacket("udp4", localAddr)
+	if err != nil {
+		return nil, err
+	}
+	if err := setupMulticast(conn); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	logf("listening %s for multicast", conn.LocalAddr().String())
+	return conn, nil
+}
+
+func setupMulticast(conn net.PacketConn) error {
+	wrap := ipv4.NewPacketConn(conn)
+	wrap.SetMulticastLoopback(true)
+	// add interfaces to multicast group.
+	iflist, err := net.Interfaces()
+	if err != nil {
+		return err
+	}
+	empty := true
+	for _, ifi := range iflist {
+		if !hasRealAddress(&ifi) {
+			continue
+		}
+		wrap.JoinGroup(&ifi, multicastAddr4)
+		empty = false
+	}
+	if empty {
+		return errors.New("no interfaces to listen")
+	}
+	return nil
+}
+
+func hasRealAddress(ifi *net.Interface) bool {
+	addrs, err := ifi.Addrs()
+	if err != nil {
+		return false
+	}
+	for _, a := range addrs {
+		ip := net.ParseIP(a.String())
+		if !ip.IsUnspecified() {
+			return true
+		}
+	}
+	return false
 }
