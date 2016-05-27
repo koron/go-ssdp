@@ -49,14 +49,7 @@ func multicastDial(localAddr string) (*net.UDPConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: configure socket to use with multicast.
-	pc := ipv4.NewPacketConn(conn)
-	n, err := pc.MulticastLoopback()
-	if err != nil {
-		logf("MulticastLoopback() failed")
-	} else {
-		logf("MulticastLoopback=%t\n", n)
-	}
+	// FIXME: configure socket to use with multicast.
 	return conn, err
 }
 
@@ -65,7 +58,7 @@ func multicastListen(localAddr string, iflist []net.Interface) (net.PacketConn, 
 	if err != nil {
 		return nil, err
 	}
-	if err := joinGroup(conn, iflist, multicastAddr4); err != nil {
+	if err := joinGroupIPv4(conn, iflist, multicastAddr4); err != nil {
 		conn.Close()
 		return nil, err
 	}
@@ -73,35 +66,37 @@ func multicastListen(localAddr string, iflist []net.Interface) (net.PacketConn, 
 	return conn, nil
 }
 
-// joinGroup makes the connection join to a group on interfaces.
-// when iflist is empty, it will use default interfaces provided by
-// defaultInterfaces().
-func joinGroup(conn net.PacketConn, iflist []net.Interface, gaddr net.Addr) error {
+// joinGroupIPv4 makes the connection join to a group on interfaces.
+func joinGroupIPv4(conn net.PacketConn, iflist []net.Interface, gaddr net.Addr) error {
 	wrap := ipv4.NewPacketConn(conn)
 	wrap.SetMulticastLoopback(true)
 	if len(iflist) == 0 {
-		iflist = defaultInterfaces()
-		if len(iflist) == 0 {
-			return errors.New("no interfaces to join group")
-		}
+		iflist = interfacesIPv4()
 	}
 	// add interfaces to multicast group.
+	joined := 0
 	for _, ifi := range iflist {
 		if err := wrap.JoinGroup(&ifi, gaddr); err != nil {
 			logf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
+			continue
 		}
+		joined++
+		logf("joined gropup %s on %s", gaddr.String(), ifi.Name)
+	}
+	if joined == 0 {
+		return errors.New("no interfaces had joined to group")
 	}
 	return nil
 }
 
-func defaultInterfaces() []net.Interface {
+func interfacesIPv4() []net.Interface {
 	iflist, err := net.Interfaces()
 	if err != nil {
 		return nil
 	}
 	list := make([]net.Interface, 0, len(iflist))
 	for _, ifi := range iflist {
-		if !hasRealAddress(&ifi) {
+		if !hasIPv4Address(&ifi) {
 			continue
 		}
 		list = append(list, ifi)
@@ -109,14 +104,17 @@ func defaultInterfaces() []net.Interface {
 	return list
 }
 
-func hasRealAddress(ifi *net.Interface) bool {
+func hasIPv4Address(ifi *net.Interface) bool {
 	addrs, err := ifi.Addrs()
 	if err != nil {
 		return false
 	}
 	for _, a := range addrs {
-		ip := net.ParseIP(a.String())
-		if !ip.IsUnspecified() {
+		ip, _, err := net.ParseCIDR(a.String())
+		if err != nil {
+			continue
+		}
+		if len(ip.To4()) == net.IPv4len && !ip.IsUnspecified() {
 			return true
 		}
 	}
