@@ -29,8 +29,8 @@ type Advertiser struct {
 }
 
 // Advertise starts advertisement of service.
-func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
-	conn, err := multicastListen("0.0.0.0:1900")
+func Advertise(st, usn, location, server string, maxAge int, iflist []net.Interface) (*Advertiser, error) {
+	conn, err := multicastListen("0.0.0.0:1900", iflist)
 	if err != nil {
 		return nil, err
 	}

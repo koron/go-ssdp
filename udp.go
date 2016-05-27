@@ -60,12 +60,12 @@ func multicastDial(localAddr string) (*net.UDPConn, error) {
 	return conn, err
 }
 
-func multicastListen(localAddr string) (net.PacketConn, error) {
+func multicastListen(localAddr string, iflist []net.Interface) (net.PacketConn, error) {
 	conn, err := net.ListenPacket("udp4", localAddr)
 	if err != nil {
 		return nil, err
 	}
-	if err := setupMulticast(conn); err != nil {
+	if err := joinGroup(conn, iflist, multicastAddr4); err != nil {
 		conn.Close()
 		return nil, err
 	}
@@ -73,26 +73,38 @@ func multicastListen(localAddr string) (net.PacketConn, error) {
 	return conn, nil
 }
 
-func setupMulticast(conn net.PacketConn) error {
+// joinGroup makes the connection join to a group on interfaces.
+func joinGroup(conn net.PacketConn, iflist []net.Interface, gaddr net.Addr) error {
 	wrap := ipv4.NewPacketConn(conn)
 	wrap.SetMulticastLoopback(true)
+	if len(iflist) == 0 {
+		iflist = defaultInterfaces()
+		if len(iflist) == 0 {
+			return errors.New("no interfaces to join group")
+		}
+	}
 	// add interfaces to multicast group.
+	for _, ifi := range iflist {
+		if err := wrap.JoinGroup(&ifi, gaddr); err != nil {
+			logf("failed to join group %s on %s", gaddr.String(), ifi.Name)
+		}
+	}
+	return nil
+}
+
+func defaultInterfaces() []net.Interface {
 	iflist, err := net.Interfaces()
 	if err != nil {
-		return err
+		return nil
 	}
-	empty := true
+	list := make([]net.Interface, 0, len(iflist))
 	for _, ifi := range iflist {
 		if !hasRealAddress(&ifi) {
 			continue
 		}
-		wrap.JoinGroup(&ifi, multicastAddr4)
-		empty = false
+		list = append(list, ifi)
 	}
-	if empty {
-		return errors.New("no interfaces to listen")
-	}
-	return nil
+	return list
 }
 
 func hasRealAddress(ifi *net.Interface) bool {

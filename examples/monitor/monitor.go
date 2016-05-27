@@ -20,7 +20,7 @@ func main() {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
 
-	_, err := ssdp.NewMonitor(aliveHandler, byeHandler)
+	_, err := ssdp.NewMonitor(aliveHandler, byeHandler, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
