@@ -3,10 +3,10 @@ EXAMPLES = advertise alive bye monitor search
 default: test
 
 test:
-	go test ./...
+	go test .
 
 test-full:
-	go test -v -race ./...
+	go test -v -race .
 
 lint:
 	go vet ./...
