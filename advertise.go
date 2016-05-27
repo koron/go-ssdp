@@ -11,7 +11,7 @@ import (
 )
 
 type message struct {
-	to   net.Addr
+	to   *net.UDPAddr
 	data []byte
 }
 
@@ -23,9 +23,10 @@ type Advertiser struct {
 	server   string
 	maxAge   int
 
-	conn net.PacketConn
+	conn *net.UDPConn
 	ch   chan *message
 	wg   sync.WaitGroup
+	quit chan bool
 }
 
 // Advertise starts advertisement of service.
@@ -43,6 +44,7 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 		maxAge:   maxAge,
 		conn:     conn,
 		ch:       make(chan *message),
+		quit:     make(chan bool),
 	}
 	a.wg.Add(2)
 	go func() {
@@ -59,12 +61,17 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 func (a *Advertiser) serve() error {
 	buf := make([]byte, 65535)
 	for {
-		n, addr, err := a.conn.ReadFrom(buf)
+		n, addr, err := a.conn.ReadFromUDP(buf)
 		if err != nil {
 			if err == io.EOF {
 				return nil
 			}
 			return err
+		}
+		select {
+		case _ = <-a.quit:
+			return nil
+		default:
 		}
 		msg := buf[:n]
 		if err := a.handleRaw(addr, msg); err != nil {
@@ -80,17 +87,19 @@ func (a *Advertiser) sendMain() error {
 			if !ok {
 				return nil
 			}
-			_, err := a.conn.WriteTo(msg.data, msg.to)
+			_, err := sendTo(msg.to, msg.data)
 			if err != nil {
 				if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
 					logf("failed to send: %s", err)
 				}
 			}
+		case _ = <-a.quit:
+			return nil
 		}
 	}
 }
 
-func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
+func (a *Advertiser) handleRaw(from *net.UDPAddr, raw []byte) error {
 	if !bytes.HasPrefix(raw, []byte("M-SEARCH ")) {
 		// unexpected method.
 		return nil
@@ -101,9 +110,9 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	}
 	var (
 		man = req.Header.Get("MAN")
-		st = req.Header.Get("ST")
+		st  = req.Header.Get("ST")
 	)
-	if  man != `"ssdp:discover"` {
+	if man != `"ssdp:discover"` {
 		return fmt.Errorf("unexpected MAN: %s", man)
 	}
 	if st != All && st != RootDevice && st != a.st {
@@ -140,10 +149,12 @@ func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 // Close stops advertisement.
 func (a *Advertiser) Close() error {
 	if a.conn != nil {
-		close(a.ch)
+		// closing order is very important. be caraful to change.
+		close(a.quit)
 		a.conn.Close()
-		a.conn = nil
 		a.wg.Wait()
+		close(a.ch)
+		a.conn = nil
 	}
 	return nil
 }

@@ -40,6 +40,19 @@ func readPackets(conn *net.UDPConn, timeout time.Duration, h packetHandler) erro
 	}
 }
 
+func sendTo(to *net.UDPAddr, data []byte) (int, error) {
+	conn, err := net.DialUDP("udp4", nil, to)
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+	n, err := conn.Write(data)
+	if err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
 func multicastListen(localAddr string) (*net.UDPConn, error) {
 	// prepare parameters.
 	laddr, err := net.ResolveUDPAddr("udp4", localAddr)
