@@ -9,17 +9,17 @@ import (
 // AnnounceAlive sends ssdp:alive message.
 func AnnounceAlive(nt, usn, location, server string, maxAge int, localAddr string) error {
 	// dial multicast UDP packet.
-	conn, err := multicastDial(localAddr)
+	conn, err := multicastListen(localAddr)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 	// build and send message.
-	msg, err := buildAlive(multicastAddr4, nt, usn, location, server, maxAge)
+	msg, err := buildAlive(ssdpAddrIPv4, nt, usn, location, server, maxAge)
 	if err != nil {
 		return err
 	}
-	if _, err := conn.WriteTo(msg, multicastAddr4); err != nil {
+	if _, err := conn.WriteTo(msg, ssdpAddrIPv4); err != nil {
 		return err
 	}
 	return nil
@@ -47,17 +47,17 @@ func buildAlive(raddr net.Addr, nt, usn, location, server string, maxAge int) ([
 // AnnounceBye sends ssdp:byebye message.
 func AnnounceBye(nt, usn, localAddr string) error {
 	// dial multicast UDP packet.
-	conn, err := multicastDial(localAddr)
+	conn, err := multicastListen(localAddr)
 	if err != nil {
 		return  err
 	}
 	defer conn.Close()
 	// build and send message.
-	msg, err := buildBye(multicastAddr4, nt, usn)
+	msg, err := buildBye(ssdpAddrIPv4, nt, usn)
 	if err != nil {
 		return err
 	}
-	if _, err := conn.WriteTo(msg, multicastAddr4); err != nil {
+	if _, err := conn.WriteTo(msg, ssdpAddrIPv4); err != nil {
 		return err
 	}
 	return nil

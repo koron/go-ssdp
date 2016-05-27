@@ -19,17 +19,18 @@ type Monitor struct {
 }
 
 // NewMonitor creates a new Monitor.
-func NewMonitor(alive AliveHandler, bye ByeHandler, iflist []net.Interface) (*Monitor, error) {
+func NewMonitor(alive AliveHandler, bye ByeHandler) (*Monitor, error) {
 	if alive == nil {
 		alive = nullAlive
 	}
 	if bye == nil {
 		bye = nullBye
 	}
-	conn, err := multicastListen("0.0.0.0:1900", iflist)
+	conn, err := multicastListen("0.0.0.0:1900")
 	if err != nil {
 		return nil, err
 	}
+	logf("monitoring on %s", conn.LocalAddr().String())
 	m := &Monitor{
 		alive: alive,
 		bye:   bye,

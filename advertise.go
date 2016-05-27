@@ -29,11 +29,12 @@ type Advertiser struct {
 }
 
 // Advertise starts advertisement of service.
-func Advertise(st, usn, location, server string, maxAge int, iflist []net.Interface) (*Advertiser, error) {
-	conn, err := multicastListen("0.0.0.0:1900", iflist)
+func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
+	conn, err := multicastListen("0.0.0.0:1900")
 	if err != nil {
 		return nil, err
 	}
+	logf("advertising on %s", conn.LocalAddr().String())
 	a := &Advertiser{
 		st:       st,
 		usn:      usn,
@@ -149,21 +150,21 @@ func (a *Advertiser) Close() error {
 
 // Alive announces ssdp:alive message.
 func (a *Advertiser) Alive() error {
-	msg, err := buildAlive(multicastAddr4, a.st, a.usn, a.location, a.server,
+	msg, err := buildAlive(ssdpAddrIPv4, a.st, a.usn, a.location, a.server,
 		a.maxAge)
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: multicastAddr4, data: msg}
+	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
 	return nil
 }
 
 // Bye announces ssdp:byebye message.
 func (a *Advertiser) Bye() error {
-	msg, err := buildBye(multicastAddr4, a.st, a.usn)
+	msg, err := buildBye(ssdpAddrIPv4, a.st, a.usn)
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: multicastAddr4, data: msg}
+	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
 	return nil
 }

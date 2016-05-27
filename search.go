@@ -68,7 +68,7 @@ const (
 // Search searchs services by SSDP.
 func Search(searchType string, waitSec int, localAddr string) ([]Service, error) {
 	// dial multicast UDP packet.
-	conn, err := multicastDial(localAddr)
+	conn, err := multicastListen(localAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +76,11 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 	logf("search on %s", conn.LocalAddr().String())
 
 	// send request.
-	msg, err := buildSearch(multicastAddr4, searchType, waitSec)
+	msg, err := buildSearch(ssdpAddrIPv4, searchType, waitSec)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := conn.WriteTo(msg, multicastAddr4); err != nil {
+	if _, err := conn.WriteTo(msg, ssdpAddrIPv4); err != nil {
 		return nil, err
 	}
 
