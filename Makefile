@@ -29,6 +29,10 @@ report:
 deps:
 	go get -v -u -d -t ./...
 
+clean: examples-clean
+
+examples: examples-build
+
 examples-build: $(EXAMPLES)
 
 examples-clean:
@@ -49,4 +53,5 @@ monitor: examples/monitor/*.go *.go
 search: examples/search/*.go *.go
 	go build ./examples/search
 
-.PHONY: test test-full lint cyclo report deps
+.PHONY: test test-full lint cyclo report deps clean \
+	examples examples-build examples-clean
