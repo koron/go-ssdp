@@ -74,6 +74,8 @@ func multicastListen(localAddr string, iflist []net.Interface) (net.PacketConn, 
 }
 
 // joinGroup makes the connection join to a group on interfaces.
+// when iflist is empty, it will use default interfaces provided by
+// defaultInterfaces().
 func joinGroup(conn net.PacketConn, iflist []net.Interface, gaddr net.Addr) error {
 	wrap := ipv4.NewPacketConn(conn)
 	wrap.SetMulticastLoopback(true)
@@ -86,7 +88,7 @@ func joinGroup(conn net.PacketConn, iflist []net.Interface, gaddr net.Addr) erro
 	// add interfaces to multicast group.
 	for _, ifi := range iflist {
 		if err := wrap.JoinGroup(&ifi, gaddr); err != nil {
-			logf("failed to join group %s on %s", gaddr.String(), ifi.Name)
+			logf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
 		}
 	}
 	return nil

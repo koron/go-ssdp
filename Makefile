@@ -1,3 +1,5 @@
+EXAMPLES = advertise alive bye monitor search
+
 default: test
 
 test:
@@ -26,5 +28,25 @@ report:
 
 deps:
 	go get -v -u -d -t ./...
+
+examples-build: $(EXAMPLES)
+
+examples-clean:
+	rm -f $(EXAMPLES)
+
+advertise: examples/advertise/*.go *.go
+	go build ./examples/advertise
+
+alive: examples/alive/*.go *.go
+	go build ./examples/alive
+
+bye: examples/bye/*.go *.go
+	go build ./examples/bye
+
+monitor: examples/monitor/*.go *.go
+	go build ./examples/monitor
+
+search: examples/search/*.go *.go
+	go build ./examples/search
 
 .PHONY: test test-full lint cyclo report deps

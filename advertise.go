@@ -98,14 +98,18 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	if man := req.Header.Get("MAN"); man != `"ssdp:discover"` {
+	var (
+		man = req.Header.Get("MAN")
+		st = req.Header.Get("ST")
+	)
+	if  man != `"ssdp:discover"` {
 		return fmt.Errorf("unexpected MAN: %s", man)
 	}
-	st := req.Header.Get("ST")
 	if st != All && st != RootDevice && st != a.st {
 		// skip when ST is not matched/expected.
 		return nil
 	}
+	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
 	msg, err := buildOK(a.st, a.usn, a.location, a.server, a.maxAge)
 	if err != nil {
