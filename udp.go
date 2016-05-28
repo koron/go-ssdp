@@ -9,12 +9,14 @@ import (
 )
 
 var (
+	sendAddrIPv4 = "239.255.255.250:1900"
+	recvAddrIPv4 = "224.0.0.0:1900"
 	ssdpAddrIPv4 *net.UDPAddr
 )
 
 func init() {
 	var err error
-	ssdpAddrIPv4, err = net.ResolveUDPAddr("udp4", "239.255.255.250:1900")
+	ssdpAddrIPv4, err = net.ResolveUDPAddr("udp4", sendAddrIPv4)
 	if err != nil {
 		panic(err)
 	}

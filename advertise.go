@@ -31,7 +31,7 @@ type Advertiser struct {
 
 // Advertise starts advertisement of service.
 func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
-	conn, err := multicastListen(":1900")
+	conn, err := multicastListen(recvAddrIPv4)
 	if err != nil {
 		return nil, err
 	}
