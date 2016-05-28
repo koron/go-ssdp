@@ -11,7 +11,7 @@ import (
 )
 
 type message struct {
-	to   *net.UDPAddr
+	to   net.Addr
 	data []byte
 }
 
@@ -23,7 +23,7 @@ type Advertiser struct {
 	server   string
 	maxAge   int
 
-	conn *net.UDPConn
+	conn *multicastConn
 	ch   chan *message
 	wg   sync.WaitGroup
 	quit chan bool
@@ -59,25 +59,21 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 }
 
 func (a *Advertiser) serve() error {
-	buf := make([]byte, 65535)
-	for {
-		n, addr, err := a.conn.ReadFromUDP(buf)
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return err
-		}
+	err := a.conn.readPackets(0, func(addr net.Addr, data[]byte) error {
 		select {
 		case _ = <-a.quit:
-			return nil
+			return io.EOF
 		default:
 		}
-		msg := buf[:n]
-		if err := a.handleRaw(addr, msg); err != nil {
+		if err := a.handleRaw(addr, data); err != nil {
 			logf("failed to handle message: %s", err)
 		}
+		return nil
+	})
+	if err != nil && err != io.EOF {
+		return err
 	}
+	return nil
 }
 
 func (a *Advertiser) sendMain() error {
@@ -87,7 +83,7 @@ func (a *Advertiser) sendMain() error {
 			if !ok {
 				return nil
 			}
-			_, err := sendTo(msg.to, msg.data)
+			_, err := a.conn.WriteTo(msg.data, msg.to)
 			if err != nil {
 				if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
 					logf("failed to send: %s", err)
@@ -99,7 +95,7 @@ func (a *Advertiser) sendMain() error {
 	}
 }
 
-func (a *Advertiser) handleRaw(from *net.UDPAddr, raw []byte) error {
+func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	if !bytes.HasPrefix(raw, []byte("M-SEARCH ")) {
 		// unexpected method.
 		return nil

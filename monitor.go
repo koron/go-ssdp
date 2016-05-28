@@ -14,7 +14,7 @@ import (
 type Monitor struct {
 	alive AliveHandler
 	bye   ByeHandler
-	conn  net.PacketConn
+	conn  *multicastConn
 	wg    sync.WaitGroup
 }
 
@@ -45,19 +45,16 @@ func NewMonitor(alive AliveHandler, bye ByeHandler) (*Monitor, error) {
 }
 
 func (m *Monitor) serve() error {
-	buf := make([]byte, 65535)
-	for {
-		n, addr, err := m.conn.ReadFrom(buf)
-		if err != nil {
-			if err == io.EOF {
-				return nil
-			}
-			return err
-		}
-		msg := make([]byte, n)
-		copy(msg, buf[:n])
+	err := m.conn.readPackets(0, func(addr net.Addr, data []byte) error {
+		msg := make([]byte, len(data))
+		copy(msg, data)
 		go m.handleRaw(addr, msg)
+		return nil
+	})
+	if err != nil && err != io.EOF {
+		return err
 	}
+	return nil
 }
 
 func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
