@@ -31,7 +31,7 @@ type Advertiser struct {
 
 // Advertise starts advertisement of service.
 func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
-	conn, err := multicastListen("0.0.0.0:1900")
+	conn, err := multicastListen(":1900")
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +167,7 @@ func (a *Advertiser) Alive() error {
 		return err
 	}
 	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
+	logf("sent alive")
 	return nil
 }
 
@@ -177,5 +178,6 @@ func (a *Advertiser) Bye() error {
 		return err
 	}
 	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
+	logf("sent bye")
 	return nil
 }

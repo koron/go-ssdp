@@ -26,7 +26,7 @@ func NewMonitor(alive AliveHandler, bye ByeHandler) (*Monitor, error) {
 	if bye == nil {
 		bye = nullBye
 	}
-	conn, err := multicastListen("0.0.0.0:1900")
+	conn, err := multicastListen(":1900")
 	if err != nil {
 		return nil, err
 	}
