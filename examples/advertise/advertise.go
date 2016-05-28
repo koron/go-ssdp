@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/koron/go-ssdp"
@@ -15,7 +16,7 @@ func main() {
 	loc := flag.String("loc", "", "LOCATION: location header")
 	srv := flag.String("srv", "", "SERVER:  server header")
 	maxAge := flag.Int("maxage", 1800, "cache control, max-age")
-	ai := flag.Int("ai", 0, "alive interval")
+	ai := flag.Int("ai", 10, "alive interval")
 	v := flag.Bool("v", false, "verbose mode")
 	h := flag.Bool("h", false, "show help")
 	flag.Parse()
@@ -31,23 +32,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var (
-		quit = make(chan bool)
-		ac <-chan time.Time
-	)
+	var aliveTick <-chan time.Time
 	if *ai > 0 {
-		ac = time.Tick(time.Duration(*ai) * time.Second)
+		aliveTick = time.Tick(time.Duration(*ai) * time.Second)
 	} else {
-		ac = make(chan time.Time)
+		aliveTick = make(chan time.Time)
 	}
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
 
 loop:
 	for {
 		select {
-		case <-ac:
+		case <-aliveTick:
 			ad.Alive()
 		case <-quit:
 			break loop
 		}
 	}
+	ad.Bye()
+	ad.Close()
 }
