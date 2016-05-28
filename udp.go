@@ -67,7 +67,7 @@ func multicastListen(localAddr string) (*net.UDPConn, error) {
 		return nil, err
 	}
 	// configure socket to use with multicast.
-	if err := joinGroupIPv4(conn, Interfaces, ssdpAddrIPv4); err != nil {
+	if err := joinGroupIPv4(conn, interfaces(), ssdpAddrIPv4); err != nil {
 		conn.Close()
 		return nil, err
 	}
@@ -78,9 +78,6 @@ func multicastListen(localAddr string) (*net.UDPConn, error) {
 func joinGroupIPv4(conn net.PacketConn, iflist []net.Interface, gaddr net.Addr) error {
 	wrap := ipv4.NewPacketConn(conn)
 	wrap.SetMulticastLoopback(true)
-	if len(iflist) == 0 {
-		iflist = interfacesIPv4()
-	}
 	// add interfaces to multicast group.
 	joined := 0
 	for _, ifi := range iflist {
