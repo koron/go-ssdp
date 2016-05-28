@@ -29,6 +29,9 @@ report:
 deps:
 	go get -v -u -d -t ./...
 
+tags:
+	ctags *.go
+
 clean: examples-clean
 
 examples: examples-build
