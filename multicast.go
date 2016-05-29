@@ -11,8 +11,8 @@ import (
 type multicastConn struct {
 	laddr  *net.UDPAddr
 	conn   *net.UDPConn
-	iflist []net.Interface
 	pconn  *ipv4.PacketConn
+	iflist []net.Interface
 }
 
 func multicastListen(localAddr string) (*multicastConn, error) {
@@ -35,9 +35,9 @@ func multicastListen(localAddr string) (*multicastConn, error) {
 	}
 	return &multicastConn{
 		laddr:  laddr,
-		iflist: iflist,
 		conn:   conn,
 		pconn:  pconn,
+		iflist: iflist,
 	}, nil
 }
 
@@ -65,10 +65,16 @@ func (mc *multicastConn) Close() error {
 	if err := mc.pconn.Close(); err != nil {
 		return err
 	}
+	if err := mc.conn.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (mc *multicastConn) WriteTo(data []byte, to net.Addr) (int, error) {
+	if uaddr, ok := to.(*net.UDPAddr); ok && !uaddr.IP.IsMulticast() {
+		return mc.conn.WriteTo(data, to)
+	}
 	for _, ifi := range mc.iflist {
 		if err := mc.pconn.SetMulticastInterface(&ifi); err != nil {
 			logf("HERE1: %s", err)
