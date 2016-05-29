@@ -6,10 +6,18 @@ import "net"
 // specified, all interfaces will be used.
 var Interfaces []net.Interface
 
+func interfaces() []net.Interface {
+	if Interfaces == nil {
+		Interfaces = interfacesIPv4()
+	}
+	return Interfaces
+}
+
 func interfacesIPv4() []net.Interface {
 	iflist, err := net.Interfaces()
 	if err != nil {
-		return nil
+		logf("failed to list interfaces: %s", err)
+		return make([]net.Interface, 0)
 	}
 	list := make([]net.Interface, 0, len(iflist))
 	for _, ifi := range iflist {

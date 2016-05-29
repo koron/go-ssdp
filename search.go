@@ -97,7 +97,7 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 		return nil
 	}
 	d := time.Second * time.Duration(waitSec)
-	if err := readPackets(conn, d, h); err != nil {
+	if err := conn.readPackets(d, h); err != nil {
 		return nil, err
 	}
 
