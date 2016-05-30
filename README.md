@@ -72,3 +72,23 @@ ad.Bye()
 // teminate Advertiser.
 ad.Close()
 ```
+
+### Limitate interfaces to multicast
+
+go-ssdp will send multicast messages to all IPv4 interfaces as default.
+When you want to limitate interfaces, see below snippet.
+
+```go
+import (
+    "github.com/koron/go-ssdp"
+    "net"
+)
+
+en0, err := net.InterfaceByName("en0")
+if err != nil {
+    panic(err)
+}
+ssdp.Interfaces = []net.Interface{*en0}
+```
+
+go-ssdp will send multicast message only "en0" after this.
