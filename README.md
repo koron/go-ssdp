@@ -16,11 +16,11 @@ examples.
 import "github.com/koron/go-ssdp"
 
 ad, err := ssdp.Advertise(
-    "my:device",                        // send as "ST".
-    "unique:id",                        // send as "USN".
-    "http://192.168.0.1:57086/foo.xml", // send as "LOCATION".
-    "go-ssdp sample",                   // send as "SERVER".
-    1800)
+    "my:device",                        // send as "ST"
+    "unique:id",                        // send as "USN"
+    "http://192.168.0.1:57086/foo.xml", // send as "LOCATION"
+    "go-ssdp sample",                   // send as "SERVER"
+    1800)                               // send as "maxAge" in "CACHE-CONTROL"
 if err != nil {
     panic(err)
 }
