@@ -59,12 +59,12 @@ signal.Notify(quit, os.Interrupt)
 
 loop:
 for {
-  select {
-  case <-aliveTick:
-      ad.Alive()
-  case <-quit:
-      break loop
-  }
+    select {
+    case <-aliveTick:
+        ad.Alive()
+    case <-quit:
+        break loop
+    }
 }
 
 // send/multicast "byebye" message.
