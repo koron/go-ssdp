@@ -12,36 +12,28 @@ import (
 
 // Monitor monitors SSDP's alive and byebye messages.
 type Monitor struct {
-	alive AliveHandler
-	bye   ByeHandler
-	conn  *multicastConn
-	wg    sync.WaitGroup
+	Alive  AliveHandler
+	Bye    ByeHandler
+	Search SearchHandler
+
+	conn *multicastConn
+	wg   sync.WaitGroup
 }
 
-// NewMonitor creates a new Monitor.
-func NewMonitor(alive AliveHandler, bye ByeHandler) (*Monitor, error) {
-	if alive == nil {
-		alive = nullAlive
-	}
-	if bye == nil {
-		bye = nullBye
-	}
+// Start starts to monitor SSDP messages.
+func (m *Monitor) Start() error {
 	conn, err := multicastListen(recvAddrIPv4)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	logf("monitoring on %s", conn.LocalAddr().String())
-	m := &Monitor{
-		alive: alive,
-		bye:   bye,
-		conn:  conn,
-	}
+	m.conn = conn
 	m.wg.Add(1)
 	go func() {
 		m.serve()
 		m.wg.Done()
 	}()
-	return m, nil
+	return nil
 }
 
 func (m *Monitor) serve() error {
@@ -58,6 +50,18 @@ func (m *Monitor) serve() error {
 }
 
 func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
+	if bytes.HasPrefix(raw, []byte("M-SEARCH ")) {
+		return m.handleSearch(addr, raw)
+	}
+	if bytes.HasPrefix(raw, []byte("NOTIFY ")) {
+		return m.handleNotify(addr, raw)
+	}
+	n := bytes.Index(raw, []byte("\r\n"))
+	logf("unexpected method: %q", string(raw[:n]))
+	return nil
+}
+
+func (m *Monitor) handleNotify(addr net.Addr, raw []byte) error {
 	req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(raw)))
 	if err != nil {
 		return err
@@ -67,26 +71,49 @@ func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
 		if req.Method != "NOTIFY" {
 			return fmt.Errorf("unexpected method for %q: %s", "ssdp:alive", req.Method)
 		}
-		m.alive(&Alive{
-			From:      addr,
-			Type:      req.Header.Get("NT"),
-			USN:       req.Header.Get("USN"),
-			Location:  req.Header.Get("LOCATION"),
-			Server:    req.Header.Get("SERVER"),
-			rawHeader: req.Header,
-		})
+		if h := m.Alive; h != nil {
+			h(&AliveMessage{
+				From:      addr,
+				Type:      req.Header.Get("NT"),
+				USN:       req.Header.Get("USN"),
+				Location:  req.Header.Get("LOCATION"),
+				Server:    req.Header.Get("SERVER"),
+				rawHeader: req.Header,
+			})
+		}
 	case "ssdp:byebye":
 		if req.Method != "NOTIFY" {
 			return fmt.Errorf("unexpected method for %q: %s", "ssdp:byebye", req.Method)
 		}
-		m.bye(&Bye{
-			From:      addr,
-			Type:      req.Header.Get("NT"),
-			USN:       req.Header.Get("USN"),
-			rawHeader: req.Header,
-		})
+		if h := m.Bye; h != nil {
+			h(&ByeMessage{
+				From:      addr,
+				Type:      req.Header.Get("NT"),
+				USN:       req.Header.Get("USN"),
+				rawHeader: req.Header,
+			})
+		}
 	default:
 		return fmt.Errorf("unknown NTS: %s", nts)
+	}
+	return nil
+}
+
+func (m *Monitor) handleSearch(addr net.Addr, raw []byte) error {
+	req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(raw)))
+	if err != nil {
+		return err
+	}
+	man := req.Header.Get("MAN")
+	if man != `"ssdp:discover"` {
+		return fmt.Errorf("unexpected MAN: %s", man)
+	}
+	if h := m.Search; h != nil {
+		h(&SearchMessage{
+			From:      addr,
+			Type:      req.Header.Get("ST"),
+			rawHeader: req.Header,
+		})
 	}
 	return nil
 }
@@ -101,8 +128,8 @@ func (m *Monitor) Close() error {
 	return nil
 }
 
-// Alive represents SSDP's ssdp:alive message.
-type Alive struct {
+// AliveMessage represents SSDP's ssdp:alive message.
+type AliveMessage struct {
 	// From is a sender of this message
 	From net.Addr
 
@@ -122,13 +149,13 @@ type Alive struct {
 	maxAge    *int
 }
 
-// Header returns all properties in response of search.
-func (m *Alive) Header() http.Header {
+// Header returns all properties in alive message.
+func (m *AliveMessage) Header() http.Header {
 	return m.rawHeader
 }
 
 // MaxAge extracts "max-age" value from "CACHE-CONTROL" property.
-func (m *Alive) MaxAge() int {
+func (m *AliveMessage) MaxAge() int {
 	if m.maxAge == nil {
 		m.maxAge = new(int)
 		*m.maxAge = extractMaxAge(m.rawHeader.Get("CACHE-CONTROL"), -1)
@@ -137,14 +164,10 @@ func (m *Alive) MaxAge() int {
 }
 
 // AliveHandler is handler of Alive message.
-type AliveHandler func(*Alive)
+type AliveHandler func(*AliveMessage)
 
-func nullAlive(*Alive) {
-	// nothing to do.
-}
-
-// Bye represents SSDP's ssdp:byebye message.
-type Bye struct {
+// ByeMessage represents SSDP's ssdp:byebye message.
+type ByeMessage struct {
 	// From is a sender of this message
 	From net.Addr
 
@@ -157,14 +180,26 @@ type Bye struct {
 	rawHeader http.Header
 }
 
-// Header returns all properties in response of search.
-func (m *Bye) Header() http.Header {
+// Header returns all properties in bye message.
+func (m *ByeMessage) Header() http.Header {
 	return m.rawHeader
 }
 
 // ByeHandler is handler of Bye message.
-type ByeHandler func(*Bye)
+type ByeHandler func(*ByeMessage)
 
-func nullBye(*Bye) {
-	// nothing to do.
+// SearchMessage represents SSDP's ssdp:discover message.
+type SearchMessage struct {
+	From net.Addr
+	Type string
+
+	rawHeader http.Header
 }
+
+// Header returns all properties in search message.
+func (s *SearchMessage) Header() http.Header {
+	return s.rawHeader
+}
+
+// SearchHandler is handler of Search message.
+type SearchHandler func(*SearchMessage)

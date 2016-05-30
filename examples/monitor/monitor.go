@@ -20,19 +20,27 @@ func main() {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
 
-	_, err := ssdp.NewMonitor(aliveHandler, byeHandler)
-	if err != nil {
+	m := &ssdp.Monitor{
+		Alive:  onAlive,
+		Bye:    onBye,
+		Search: onSearch,
+	}
+	if err := m.Start(); err != nil {
 		log.Fatal(err)
 	}
 	for {
 	}
 }
 
-func aliveHandler(m *ssdp.Alive) {
+func onAlive(m *ssdp.AliveMessage) {
 	log.Printf("Alive: From=%s Type=%s USN=%s Location=%s Server=%s MaxAge=%d",
 		m.From.String(), m.Type, m.USN, m.Location, m.Server, m.MaxAge())
 }
 
-func byeHandler(m *ssdp.Bye) {
+func onBye(m *ssdp.ByeMessage) {
 	log.Printf("Bye: From=%s Type=%s USN=%s", m.From.String(), m.Type, m.USN)
+}
+
+func onSearch(m *ssdp.SearchMessage) {
+	log.Printf("Search: From=%s Type=%s", m.From.String(), m.Type)
 }
