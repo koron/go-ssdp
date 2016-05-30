@@ -59,7 +59,7 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 }
 
 func (a *Advertiser) serve() error {
-	err := a.conn.readPackets(0, func(addr net.Addr, data[]byte) error {
+	err := a.conn.readPackets(0, func(addr net.Addr, data []byte) error {
 		select {
 		case _ = <-a.quit:
 			return io.EOF

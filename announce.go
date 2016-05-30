@@ -49,7 +49,7 @@ func AnnounceBye(nt, usn, localAddr string) error {
 	// dial multicast UDP packet.
 	conn, err := multicastListen(localAddr)
 	if err != nil {
-		return  err
+		return err
 	}
 	defer conn.Close()
 	// build and send message.

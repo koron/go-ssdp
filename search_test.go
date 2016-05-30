@@ -2,7 +2,6 @@ package ssdp
 
 import "testing"
 
-
 func testMaxAge(t *testing.T, s string, expect int) {
 	act := extractMaxAge(s, -1)
 	if act != expect {
@@ -22,7 +21,7 @@ func TestExtractMaxAge(t *testing.T) {
 	testMaxAge(t, "max-age=-100", -1)
 	// invalid name
 	testMaxAge(t, "foo=100", -1)
-	// contained valid name 
+	// contained valid name
 	testMaxAge(t, "foomax-age=100", -1)
 	// surrounded
 	testMaxAge(t, ";max-age=500;", 500)
