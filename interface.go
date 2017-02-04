@@ -21,7 +21,7 @@ func interfacesIPv4() []net.Interface {
 	}
 	list := make([]net.Interface, 0, len(iflist))
 	for _, ifi := range iflist {
-		if !hasIPv4Address(&ifi) {
+		if !hasLinkUp(&ifi) || !hasIPv4Address(&ifi) {
 			continue
 		}
 		list = append(list, ifi)
@@ -29,10 +29,13 @@ func interfacesIPv4() []net.Interface {
 	return list
 }
 
+// hasLinkUp checks an I/F have link-up or not.
+func hasLinkUp(ifi *net.Interface) bool {
+	return ifi.Flags&net.FlagUp != 0
+}
+
+// hasIPv4Address checks an I/F have IPv4 address.
 func hasIPv4Address(ifi *net.Interface) bool {
-	if ifi.Flags&net.FlagUp == 0 {
-		return false
-	}
 	addrs, err := ifi.Addrs()
 	if err != nil {
 		return false
