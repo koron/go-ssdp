@@ -30,6 +30,9 @@ func interfacesIPv4() []net.Interface {
 }
 
 func hasIPv4Address(ifi *net.Interface) bool {
+	if ifi.Flags&net.FlagUp == 0 {
+		return false
+	}
 	addrs, err := ifi.Addrs()
 	if err != nil {
 		return false
