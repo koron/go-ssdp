@@ -35,7 +35,7 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 	if err != nil {
 		return nil, err
 	}
-	logf("advertising on %s", conn.LocalAddr().String())
+	logf("SSDP advertise on: %s", conn.LocalAddr().String())
 	a := &Advertiser{
 		st:       st,
 		usn:      usn,

@@ -53,7 +53,7 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 			continue
 		}
 		joined++
-		logf("joined gropup %s on %s", gaddr.String(), ifi.Name)
+		logf("joined group %s on %s", gaddr.String(), ifi.Name)
 	}
 	if joined == 0 {
 		return nil, errors.New("no interfaces had joined to group")
@@ -77,11 +77,9 @@ func (mc *multicastConn) WriteTo(data []byte, to net.Addr) (int, error) {
 	}
 	for _, ifi := range mc.iflist {
 		if err := mc.pconn.SetMulticastInterface(&ifi); err != nil {
-			logf("HERE1: %s", err)
 			return 0, err
 		}
 		if _, err := mc.pconn.WriteTo(data, nil, to); err != nil {
-			logf("HERE2: %s", err)
 			return 0, err
 		}
 	}
