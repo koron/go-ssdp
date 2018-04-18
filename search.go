@@ -124,7 +124,9 @@ func parseService(addr net.Addr, data []byte) (*Service, error) {
 	if !bytes.HasPrefix(data, []byte("HTTP")) {
 		return nil, errWithoutHTTPPrefix
 	}
-	resp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(data)), nil)
+	// Add newline to workaround buggy SSDP responses
+	str := append(data, "\r\n"...)
+	resp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(str)), nil)
 	if err != nil {
 		return nil, err
 	}
