@@ -3,7 +3,7 @@ EXAMPLES = advertise alive bye monitor search
 default: test
 
 test:
-	go test .
+	go test -v ./...
 
 test-full:
 	go test -v -race .

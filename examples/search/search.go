@@ -24,7 +24,13 @@ func main() {
 	if *v {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
-	list, err := ssdp.Search(*t, *w, *l, *m)
+	if *m != "" {
+		err := ssdp.SetMulticastSendAddrIPv4(*m)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	list, err := ssdp.Search(*t, *w, *l)
 	if err != nil {
 		log.Fatal(err)
 	}
