@@ -66,7 +66,7 @@ const (
 )
 
 // Search searchs services by SSDP.
-func Search(searchType string, waitSec int, localAddr string) ([]Service, error) {
+func Search(searchType string, waitSec int, localAddr string) ([]Service, error){
 	// dial multicast UDP packet.
 	conn, err := multicastListen(localAddr)
 	if err != nil {
@@ -120,9 +120,17 @@ var (
 	errWithoutHTTPPrefix = errors.New("without HTTP prefix")
 )
 
+var newLine = []byte{'\r', '\n'}
+
 func parseService(addr net.Addr, data []byte) (*Service, error) {
 	if !bytes.HasPrefix(data, []byte("HTTP")) {
 		return nil, errWithoutHTTPPrefix
+	}
+	// Add newline to workaround buggy SSDP responses
+	if !bytes.HasSuffix(data, newLine) {
+		// why we should't use append() for this purpose:
+		//  https://play.golang.org/p/IM1pONW9lqm
+		data = bytes.Join([][]byte{data, newLine}, nil)
 	}
 	resp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(data)), nil)
 	if err != nil {

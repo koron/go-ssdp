@@ -51,3 +51,13 @@ func sendTo(to *net.UDPAddr, data []byte) (int, error) {
 	}
 	return n, nil
 }
+
+// SetMulticastSendAddrIPv4 updates a UDP address to send multicast packets.
+func SetMulticastSendAddrIPv4(s string) error {
+	addr, err := net.ResolveUDPAddr("udp4", sendAddrIPv4)
+	if err != nil {
+		return err
+	}
+	ssdpAddrIPv4 = addr
+	return nil
+}

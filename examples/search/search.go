@@ -13,6 +13,7 @@ func main() {
 	t := flag.String("t", ssdp.All, "search type")
 	w := flag.Int("w", 1, "wait time")
 	l := flag.String("l", "", "local address to listen")
+	m := flag.String("m", "", "multicast address to send")
 	v := flag.Bool("v", false, "verbose mode")
 	h := flag.Bool("h", false, "show help")
 	flag.Parse()
@@ -22,6 +23,12 @@ func main() {
 	}
 	if *v {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
+	}
+	if *m != "" {
+		err := ssdp.SetMulticastSendAddrIPv4(*m)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	list, err := ssdp.Search(*t, *w, *l)
 	if err != nil {
