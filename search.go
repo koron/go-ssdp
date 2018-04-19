@@ -120,7 +120,8 @@ var (
 	errWithoutHTTPPrefix = errors.New("without HTTP prefix")
 )
 
-var newLine = []byte{'\r', '\n'}
+// Actually is a double new line
+var newLine = []byte{'\r', '\n', '\r', '\n'}
 
 func parseService(addr net.Addr, data []byte) (*Service, error) {
 	if !bytes.HasPrefix(data, []byte("HTTP")) {
@@ -129,7 +130,7 @@ func parseService(addr net.Addr, data []byte) (*Service, error) {
 	// Add newline to workaround buggy SSDP responses
 	if !bytes.HasSuffix(data, newLine) {
 		// why we should't use append() for this purpose:
-		//  https://play.golang.org/p/IM1pONW9lqm
+		// https://play.golang.org/p/IM1pONW9lqm
 		data = bytes.Join([][]byte{data, newLine}, nil)
 	}
 	resp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(data)), nil)
