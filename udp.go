@@ -61,3 +61,13 @@ func SetMulticastSendAddrIPv4(s string) error {
 	ssdpAddrIPv4 = addr
 	return nil
 }
+
+// SetMulticastRecvAddrIPv4 updates multicast address where to receive packets.
+func SetMulticastRecvAddrIPv4(s string) error {
+	_, err := net.ResolveUDPAddr("udp4", s)
+	if err != nil {
+		return err
+	}
+	recvAddrIPv4 = s
+	return nil
+}
