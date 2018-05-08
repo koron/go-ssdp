@@ -61,7 +61,11 @@ func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
 		return m.handleSearch(addr, raw)
 	}
 	if bytes.HasPrefix(raw, []byte("NOTIFY ")) {
-		return m.handleNotify(addr, raw)
+		err := m.handleNotify(addr, raw)
+		if err != nil {
+			logf("error parsing notify: %s", err)
+		}
+		return err
 	}
 	n := bytes.Index(raw, []byte("\r\n"))
 	logf("unexpected method: %q", string(raw[:n]))
