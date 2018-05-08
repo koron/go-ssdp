@@ -49,7 +49,14 @@ func (m *Monitor) serve() error {
 	return nil
 }
 
+// Actually is a double new line
+var newLine = []byte{'\r', '\n', '\r', '\n'}
+
 func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
+	// Add newline to workaround buggy SSDP responses
+	if !bytes.HasSuffix(raw, newLine) {
+		raw = bytes.Join([][]byte{raw, newLine}, nil)
+	}
 	if bytes.HasPrefix(raw, []byte("M-SEARCH ")) {
 		return m.handleSearch(addr, raw)
 	}
