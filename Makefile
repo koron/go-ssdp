@@ -30,7 +30,8 @@ deps:
 	go get -v -u -d -t ./...
 
 tags:
-	ctags *.go
+	gotags -f tags -R .
+.PHONY: tags
 
 clean: examples-clean
 
