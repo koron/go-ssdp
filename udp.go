@@ -12,6 +12,7 @@ var (
 )
 
 func init() {
+	// FIXME: https://github.com/koron/go-ssdp/issues/9
 	var err error
 	ssdpAddrIPv4, err = net.ResolveUDPAddr("udp4", sendAddrIPv4)
 	if err != nil {
@@ -54,6 +55,7 @@ func sendTo(to *net.UDPAddr, data []byte) (int, error) {
 
 // SetMulticastSendAddrIPv4 updates a UDP address to send multicast packets.
 func SetMulticastSendAddrIPv4(s string) error {
+	// FIXME: https://github.com/koron/go-ssdp/issues/9
 	addr, err := net.ResolveUDPAddr("udp4", s)
 	if err != nil {
 		return err
@@ -64,6 +66,7 @@ func SetMulticastSendAddrIPv4(s string) error {
 
 // SetMulticastRecvAddrIPv4 updates multicast address where to receive packets.
 func SetMulticastRecvAddrIPv4(s string) error {
+	// FIXME: https://github.com/koron/go-ssdp/issues/9
 	_, err := net.ResolveUDPAddr("udp4", s)
 	if err != nil {
 		return err
