@@ -49,23 +49,17 @@ func (m *Monitor) serve() error {
 	return nil
 }
 
-// Actually is a double new line
-var newLine = []byte{'\r', '\n', '\r', '\n'}
-
 func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
 	// Add newline to workaround buggy SSDP responses
-	if !bytes.HasSuffix(raw, newLine) {
-		raw = bytes.Join([][]byte{raw, newLine}, nil)
+	if !bytes.HasSuffix(raw, endOfHeader) {
+		// FIXME: https://github.com/koron/go-ssdp/issues/10
+		raw = bytes.Join([][]byte{raw, endOfHeader}, nil)
 	}
 	if bytes.HasPrefix(raw, []byte("M-SEARCH ")) {
 		return m.handleSearch(addr, raw)
 	}
 	if bytes.HasPrefix(raw, []byte("NOTIFY ")) {
-		err := m.handleNotify(addr, raw)
-		if err != nil {
-			logf("error parsing notify: %s", err)
-		}
-		return err
+		return m.handleNotify(addr, raw)
 	}
 	n := bytes.Index(raw, []byte("\r\n"))
 	logf("unexpected method: %q", string(raw[:n]))
