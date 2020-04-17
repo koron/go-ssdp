@@ -17,11 +17,11 @@ type message struct {
 
 // Advertiser is a server to advertise a service.
 type Advertiser struct {
-	st       string
-	usn      string
-	location string
-	server   string
-	maxAge   int
+	st              string
+	usn             string
+	locationHandler LocationHandler
+	server          string
+	maxAge          int
 
 	conn *multicastConn
 	ch   chan *message
@@ -29,22 +29,25 @@ type Advertiser struct {
 	quit chan bool
 }
 
+// LocationHandler is handler for callback location processing
+type LocationHandler func(net.Addr) string
+
 // Advertise starts advertisement of service.
-func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
+func Advertise(st, usn, server string, maxAge int, locationHandler LocationHandler) (*Advertiser, error) {
 	conn, err := multicastListen(recvAddrIPv4)
 	if err != nil {
 		return nil, err
 	}
 	logf("SSDP advertise on: %s", conn.LocalAddr().String())
 	a := &Advertiser{
-		st:       st,
-		usn:      usn,
-		location: location,
-		server:   server,
-		maxAge:   maxAge,
-		conn:     conn,
-		ch:       make(chan *message),
-		quit:     make(chan bool),
+		st:              st,
+		usn:             usn,
+		locationHandler: locationHandler,
+		server:          server,
+		maxAge:          maxAge,
+		conn:            conn,
+		ch:              make(chan *message),
+		quit:            make(chan bool),
 	}
 	a.wg.Add(2)
 	go func() {
@@ -117,7 +120,7 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	}
 	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
-	msg, err := buildOK(a.st, a.usn, a.location, a.server, a.maxAge)
+	msg, err := buildOK(a.st, a.usn, a.locationHandler(from), a.server, a.maxAge)
 	if err != nil {
 		return err
 	}
@@ -157,7 +160,7 @@ func (a *Advertiser) Close() error {
 
 // Alive announces ssdp:alive message.
 func (a *Advertiser) Alive() error {
-	msg, err := buildAlive(ssdpAddrIPv4, a.st, a.usn, a.location, a.server,
+	msg, err := buildAlive(ssdpAddrIPv4, a.st, a.usn, a.locationHandler(nil), a.server,
 		a.maxAge)
 	if err != nil {
 		return err

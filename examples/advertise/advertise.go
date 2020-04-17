@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"time"
@@ -28,7 +29,18 @@ func main() {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
 
-	ad, err := ssdp.Advertise(*st, *usn, *loc, *srv, *maxAge)
+	locationHandler := func(originator net.Addr) string {
+		if originator != nil {
+			ssdp.Logger.Printf("Location header handler called in the context of an M-SEARCH from %s", originator.String())
+			// do something with the originator argument to compute the location
+		} else {
+			ssdp.Logger.Printf("Location header handler called in the context of an Alive announcement")
+		}
+		// just returning the location argument
+		return *loc
+	}
+
+	ad, err := ssdp.Advertise(*st, *usn, *srv, *maxAge, locationHandler)
 	if err != nil {
 		log.Fatal(err)
 	}
