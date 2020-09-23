@@ -31,7 +31,7 @@ type Advertiser struct {
 
 // Advertise starts advertisement of service.
 func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
-	conn, err := multicastListen(recvAddrIPv4)
+	conn, err := multicastListen(recvAddrResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -149,23 +149,31 @@ func (a *Advertiser) Close() error {
 
 // Alive announces ssdp:alive message.
 func (a *Advertiser) Alive() error {
-	msg, err := buildAlive(ssdpAddrIPv4, a.st, a.usn, a.location, a.server,
+	addr, err := multicastSendAddr()
+	if err != nil {
+		return err
+	}
+	msg, err := buildAlive(addr, a.st, a.usn, a.location, a.server,
 		a.maxAge)
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
+	a.ch <- &message{to: addr, data: msg}
 	logf("sent alive")
 	return nil
 }
 
 // Bye announces ssdp:byebye message.
 func (a *Advertiser) Bye() error {
-	msg, err := buildBye(ssdpAddrIPv4, a.st, a.usn)
+	addr, err := multicastSendAddr()
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: ssdpAddrIPv4, data: msg}
+	msg, err := buildBye(addr, a.st, a.usn)
+	if err != nil {
+		return err
+	}
+	a.ch <- &message{to: addr, data: msg}
 	logf("sent bye")
 	return nil
 }
