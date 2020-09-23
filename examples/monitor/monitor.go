@@ -28,8 +28,9 @@ func main() {
 	if err := m.Start(); err != nil {
 		log.Fatal(err)
 	}
-	for {
-	}
+	// wait infinitely
+	ch := make(chan struct{})
+	<-ch
 }
 
 func onAlive(m *ssdp.AliveMessage) {

@@ -2,7 +2,6 @@ package ssdp
 
 import (
 	"net"
-	"time"
 )
 
 var (
@@ -22,36 +21,36 @@ func init() {
 
 type packetHandler func(net.Addr, []byte) error
 
-func readPackets(conn *net.UDPConn, timeout time.Duration, h packetHandler) error {
-	buf := make([]byte, 65535)
-	conn.SetReadBuffer(len(buf))
-	conn.SetReadDeadline(time.Now().Add(timeout))
-	for {
-		n, addr, err := conn.ReadFrom(buf)
-		if err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-				return nil
-			}
-			return err
-		}
-		if err := h(addr, buf[:n]); err != nil {
-			return err
-		}
-	}
-}
+//func readPackets(conn *net.UDPConn, timeout time.Duration, h packetHandler) error {
+//	buf := make([]byte, 65535)
+//	conn.SetReadBuffer(len(buf))
+//	conn.SetReadDeadline(time.Now().Add(timeout))
+//	for {
+//		n, addr, err := conn.ReadFrom(buf)
+//		if err != nil {
+//			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+//				return nil
+//			}
+//			return err
+//		}
+//		if err := h(addr, buf[:n]); err != nil {
+//			return err
+//		}
+//	}
+//}
 
-func sendTo(to *net.UDPAddr, data []byte) (int, error) {
-	conn, err := net.DialUDP("udp4", nil, to)
-	if err != nil {
-		return 0, err
-	}
-	defer conn.Close()
-	n, err := conn.Write(data)
-	if err != nil {
-		return 0, err
-	}
-	return n, nil
-}
+//func sendTo(to *net.UDPAddr, data []byte) (int, error) {
+//	conn, err := net.DialUDP("udp4", nil, to)
+//	if err != nil {
+//		return 0, err
+//	}
+//	defer conn.Close()
+//	n, err := conn.Write(data)
+//	if err != nil {
+//		return 0, err
+//	}
+//	return n, nil
+//}
 
 // SetMulticastSendAddrIPv4 updates a UDP address to send multicast packets.
 func SetMulticastSendAddrIPv4(s string) error {

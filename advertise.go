@@ -73,20 +73,15 @@ func (a *Advertiser) recvMain() error {
 }
 
 func (a *Advertiser) sendMain() error {
-	for {
-		select {
-		case msg, ok := <-a.ch:
-			if !ok {
-				return nil
-			}
-			_, err := a.conn.WriteTo(msg.data, msg.to)
-			if err != nil {
-				if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
-					logf("failed to send: %s", err)
-				}
+	for msg := range a.ch {
+		_, err := a.conn.WriteTo(msg.data, msg.to)
+		if err != nil {
+			if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
+				logf("failed to send: %s", err)
 			}
 		}
 	}
+	return nil
 }
 
 func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
