@@ -139,7 +139,7 @@ func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 // Close stops advertisement.
 func (a *Advertiser) Close() error {
 	if a.conn != nil {
-		// closing order is very important. be caraful to change:
+		// closing order is very important. be careful to change:
 		// stop sending loop by closing the channel and wait it.
 		close(a.ch)
 		a.wgS.Wait()
