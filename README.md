@@ -16,10 +16,17 @@ examples.
 ```go
 import "github.com/koron/go-ssdp"
 
+locationHandler := func(originator net.Addr) string {
+    if originator != nil {
+        ssdp.Logger.Printf("Location header handler called in the context of an M-SEARCH from %s", originator.String())
+    }
+    return "http://192.168.0.1:57086/foo.xml"
+}
+
 ad, err := ssdp.Advertise(
     "my:device",                        // send as "ST"
     "unique:id",                        // send as "USN"
-    "http://192.168.0.1:57086/foo.xml", // send as "LOCATION"
+    locationHandler,                    // callback to get the "LOCATION" header
     "go-ssdp sample",                   // send as "SERVER"
     1800)                               // send as "maxAge" in "CACHE-CONTROL"
 if err != nil {
