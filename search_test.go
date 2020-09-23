@@ -1,6 +1,11 @@
 package ssdp
 
-import "testing"
+import (
+	"net"
+	"strings"
+	"sync"
+	"testing"
+)
 
 func testMaxAge(t *testing.T, s string, expect int) {
 	act := extractMaxAge(s, -1)
@@ -27,4 +32,46 @@ func TestExtractMaxAge(t *testing.T) {
 	testMaxAge(t, ";max-age=500;", 500)
 	testMaxAge(t, ";max-age=600", 600)
 	testMaxAge(t, "max-age=700;", 700)
+}
+
+func TestSearch_Request(t *testing.T) {
+	searchType := "test:search+request"
+
+	var mu sync.Mutex
+	var mm []*SearchMessage
+	m := newTestMonitor(searchType, nil, nil, func(m *SearchMessage) {
+		mu.Lock()
+		mm = append(mm, m)
+		mu.Unlock()
+	})
+	err := m.Start()
+	if err != nil {
+		t.Fatalf("failed to start Monitor: %s", err)
+	}
+	defer m.Close()
+
+	srvs, err := Search(searchType, 1, "")
+	if err != nil {
+		t.Fatalf("failed to Search: %s", err)
+	}
+	if len(srvs) > 0 {
+		t.Errorf("unexpected services: %+v", srvs)
+	}
+
+	if len(mm) < 1 {
+		t.Fatal("no search detected")
+	}
+	_, port, err := net.SplitHostPort(mm[0].From.String())
+	if err != nil {
+		t.Fatalf("failed to split host and port: %s", err)
+	}
+	port = ":" + port
+	for i, m := range mm {
+		if m.Type != "test:search+request" {
+			t.Errorf("unmatch type#%d:\nwant=%q\n got=%q", i, "test:search+request", m.Type)
+		}
+		if strings.HasSuffix(port, m.From.String()) {
+			t.Errorf("unmatch port#%d:\nwant=%q\n got=%q", i, port, m.From.String())
+		}
+	}
 }

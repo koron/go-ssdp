@@ -19,7 +19,7 @@ tags:
 .PHONY: cover
 cover:
 	mkdir -p tmp
-	go test -coverprofile tmp/_cover.out ./...
+	go test -coverprofile tmp/_cover.out .
 	go tool cover -html tmp/_cover.out -o tmp/cover.html
 
 .PHONY: checkall
