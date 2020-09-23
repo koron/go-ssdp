@@ -26,7 +26,7 @@ type Advertiser struct {
 	conn *multicastConn
 	ch   chan *message
 	wg   sync.WaitGroup
-	quit chan bool
+	wgS  sync.WaitGroup
 }
 
 // Advertise starts advertisement of service.
@@ -44,27 +44,23 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 		maxAge:   maxAge,
 		conn:     conn,
 		ch:       make(chan *message),
-		quit:     make(chan bool),
 	}
 	a.wg.Add(2)
+	a.wgS.Add(1)
 	go func() {
 		a.sendMain()
+		a.wgS.Done()
 		a.wg.Done()
 	}()
 	go func() {
-		a.serve()
+		a.recvMain()
 		a.wg.Done()
 	}()
 	return a, nil
 }
 
-func (a *Advertiser) serve() error {
+func (a *Advertiser) recvMain() error {
 	err := a.conn.readPackets(0, func(addr net.Addr, data []byte) error {
-		select {
-		case _ = <-a.quit:
-			return io.EOF
-		default:
-		}
 		if err := a.handleRaw(addr, data); err != nil {
 			logf("failed to handle message: %s", err)
 		}
@@ -89,8 +85,6 @@ func (a *Advertiser) sendMain() error {
 					logf("failed to send: %s", err)
 				}
 			}
-		case _ = <-a.quit:
-			return nil
 		}
 	}
 }
@@ -146,11 +140,13 @@ func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 // Close stops advertisement.
 func (a *Advertiser) Close() error {
 	if a.conn != nil {
-		// closing order is very important. be caraful to change.
-		close(a.quit)
+		// closing order is very important. be careful to change:
+		// stop sending loop by closing the channel and wait it.
+		close(a.ch)
+		a.wgS.Wait()
+		// stop receiving loop by closing the connection.
 		a.conn.Close()
 		a.wg.Wait()
-		close(a.ch)
 		a.conn = nil
 	}
 	return nil
