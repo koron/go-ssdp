@@ -15,9 +15,9 @@ type multicastConn struct {
 	iflist []net.Interface
 }
 
-func multicastListen(localAddr string) (*multicastConn, error) {
+func multicastListen(r *udpAddrResolver) (*multicastConn, error) {
 	// prepare parameters.
-	laddr, err := net.ResolveUDPAddr("udp4", localAddr)
+	laddr, err := r.resolve()
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,11 @@ func multicastListen(localAddr string) (*multicastConn, error) {
 		conn.Close()
 		return nil, err
 	}
-	pconn, err := joinGroupIPv4(conn, iflist, ssdpAddrIPv4)
+	addr, err := multicastSendAddr()
+	if err != nil {
+		return nil, err
+	}
+	pconn, err := joinGroupIPv4(conn, iflist, addr)
 	if err != nil {
 		conn.Close()
 		return nil, err

@@ -22,7 +22,7 @@ type Monitor struct {
 
 // Start starts to monitor SSDP messages.
 func (m *Monitor) Start() error {
-	conn, err := multicastListen(recvAddrIPv4)
+	conn, err := multicastListen(recvAddrResolver)
 	if err != nil {
 		return err
 	}
