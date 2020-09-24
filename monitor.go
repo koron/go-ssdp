@@ -52,7 +52,6 @@ func (m *Monitor) serve() error {
 func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
 	// Add newline to workaround buggy SSDP responses
 	if !bytes.HasSuffix(raw, endOfHeader) {
-		// FIXME: https://github.com/koron/go-ssdp/issues/10
 		raw = bytes.Join([][]byte{raw, endOfHeader}, nil)
 	}
 	if bytes.HasPrefix(raw, []byte("M-SEARCH ")) {

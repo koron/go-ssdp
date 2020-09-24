@@ -120,7 +120,6 @@ var (
 	errWithoutHTTPPrefix = errors.New("without HTTP prefix")
 )
 
-// FIXME: https://github.com/koron/go-ssdp/issues/10
 var endOfHeader = []byte{'\r', '\n', '\r', '\n'}
 
 func parseService(addr net.Addr, data []byte) (*Service, error) {
