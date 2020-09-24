@@ -75,3 +75,34 @@ func TestSearch_Request(t *testing.T) {
 		}
 	}
 }
+
+func TestSearch_Response(t *testing.T) {
+	a, err := Advertise("test:search+response", "usn:search+response", "location:search+response", "server:search+response", 600)
+	if err != nil {
+		t.Fatalf("failed to Advertise: %s", err)
+	}
+	defer a.Close()
+
+	srvs, err := Search("test:search+response", 1, "")
+	if err != nil {
+		t.Fatalf("failed to Search: %s", err)
+	}
+	if len(srvs) == 0 {
+		t.Errorf("no services found")
+	}
+
+	for i, s := range srvs {
+		if s.Type != "test:search+response" {
+			t.Errorf("unexpected service#%d type: want=%q got=%q", i, "test:search+response", s.Type)
+		}
+		if s.USN != "usn:search+response" {
+			t.Errorf("unexpected service#%d usn: want=%q got=%q", i, "usn:search+response", s.USN)
+		}
+		if s.Location != "location:search+response" {
+			t.Errorf("unexpected service#%d location: want=%q got=%q", i, "location:search+response", s.Location)
+		}
+		if s.Server != "server:search+response" {
+			t.Errorf("unexpected service#%d server: want=%q got=%q", i, "server:search+response", s.Server)
+		}
+	}
+}
