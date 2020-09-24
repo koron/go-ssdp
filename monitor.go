@@ -3,6 +3,7 @@ package ssdp
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -43,7 +44,7 @@ func (m *Monitor) serve() error {
 		go m.handleRaw(addr, msg)
 		return nil
 	})
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 	return nil

@@ -66,12 +66,28 @@ func TestSearch_Request(t *testing.T) {
 		t.Fatalf("failed to split host and port: %s", err)
 	}
 	port = ":" + port
+
+	expHdr := map[string]string{
+		"Man": `"ssdp:discover"`,
+		"Mx":  "1",
+		"St":  "test:search+request",
+	}
 	for i, m := range mm {
 		if m.Type != "test:search+request" {
 			t.Errorf("unmatch type#%d:\nwant=%q\n got=%q", i, "test:search+request", m.Type)
 		}
 		if strings.HasSuffix(port, m.From.String()) {
 			t.Errorf("unmatch port#%d:\nwant=%q\n got=%q", i, port, m.From.String())
+		}
+
+		h := m.Header()
+		for k := range h {
+			exp, ok := expHdr[k]
+			if !ok {
+				t.Errorf("unexpected header #%d %q=%q", i, k, h.Get(k))
+			} else if act := h.Get(k); act != exp {
+				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
+			}
 		}
 	}
 }
@@ -104,6 +120,58 @@ func TestSearch_Response(t *testing.T) {
 		}
 		if s.Server != "server:search+response" {
 			t.Errorf("unexpected service#%d server: want=%q got=%q", i, "server:search+response", s.Server)
+		}
+	}
+}
+
+func TestSearch_ServiceRawHeader(t *testing.T) {
+	a, err := Advertise("test:search+servicerawheader", "usn:search+servicerawheader", "location:search+servicerawheader", "server:search+servicerawheader", 600)
+	if err != nil {
+		t.Fatalf("failed to Advertise: %s", err)
+	}
+	defer a.Close()
+
+	srvs, err := Search("test:search+servicerawheader", 1, "")
+	if err != nil {
+		t.Fatalf("failed to Search: %s", err)
+	}
+	if len(srvs) == 0 {
+		t.Fatal("no services found")
+	}
+
+	expHdr := map[string]string{
+		"St":            "test:search+servicerawheader",
+		"Usn":           "usn:search+servicerawheader",
+		"Location":      "location:search+servicerawheader",
+		"Server":        "server:search+servicerawheader",
+		"Cache-Control": "max-age=600",
+		"Ext":           "",
+	}
+	for i, s := range srvs {
+		if s.Type != "test:search+servicerawheader" {
+			t.Errorf("unmatch type#%d:\nwant=%q\n got=%q", i, "test:search+request", s.Type)
+		}
+		if s.USN != "usn:search+servicerawheader" {
+			t.Errorf("unexpected alive#%d usn: want=%q got=%q", i, "usn:search+servicerawheader", s.USN)
+		}
+		if s.Location != "location:search+servicerawheader" {
+			t.Errorf("unexpected alive#%d location: want=%q got=%q", i, "location:search+servicerawheader", s.Location)
+		}
+		if s.Server != "server:search+servicerawheader" {
+			t.Errorf("unexpected alive#%d server: want=%q got=%q", i, "server:search+servicerawheader", s.Server)
+		}
+		if s.MaxAge() != 600 {
+			t.Errorf("unexpected max-age: want=%d got=%d", 600, s.MaxAge())
+		}
+
+		h := s.Header()
+		for k := range h {
+			exp, ok := expHdr[k]
+			if !ok {
+				t.Errorf("unexpected header #%d %q=%q", i, k, h.Get(k))
+			} else if act := h.Get(k); act != exp {
+				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
+			}
 		}
 	}
 }
