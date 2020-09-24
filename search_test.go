@@ -91,6 +91,7 @@ func TestSearch_Response(t *testing.T) {
 		t.Errorf("no services found")
 	}
 
+	//t.Logf("found %d services", len(srvs))
 	for i, s := range srvs {
 		if s.Type != "test:search+response" {
 			t.Errorf("unexpected service#%d type: want=%q got=%q", i, "test:search+response", s.Type)
