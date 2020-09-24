@@ -73,9 +73,7 @@ func (mc *multicastConn) Close() error {
 	if err := mc.pconn.Close(); err != nil {
 		return err
 	}
-	if err := mc.conn.Close(); err != nil {
-		return err
-	}
+	// mc.conn is closed by mc.pconn.Close()
 	return nil
 }
 
