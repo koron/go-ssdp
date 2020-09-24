@@ -65,7 +65,7 @@ const (
 	RootDevice = "upnp:rootdevice"
 )
 
-// Search searchs services by SSDP.
+// Search searches services by SSDP.
 func Search(searchType string, waitSec int, localAddr string) ([]Service, error) {
 	// dial multicast UDP packet.
 	conn, err := multicastListen(&udpAddrResolver{addr: localAddr})
