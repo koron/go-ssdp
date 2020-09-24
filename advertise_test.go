@@ -43,6 +43,15 @@ func TestAdvertise_Alive(t *testing.T) {
 		t.Fatalf("failed to split host and port: %s", err)
 	}
 	port = ":" + port
+
+	expHdr := map[string]string{
+		"Nts":           "ssdp:alive",
+		"Nt":            "test:advertise+alive",
+		"Usn":           "usn:advertise+alive",
+		"Location":      "location:advertise+alive",
+		"Server":        "server:advertise+alive",
+		"Cache-Control": "max-age=600",
+	}
 	for i, m := range mm {
 		if strings.HasSuffix(port, m.From.String()) {
 			t.Errorf("unmatch port#%d:\nwant=%q\n got=%q", i, port, m.From.String())
@@ -58,6 +67,19 @@ func TestAdvertise_Alive(t *testing.T) {
 		}
 		if m.Server != "server:advertise+alive" {
 			t.Errorf("unexpected alive#%d server: want=%q got=%q", i, "server:advertise+alive", m.Server)
+		}
+		if m.MaxAge() != 600 {
+			t.Errorf("unexpected max-age: want=%d got=%d", 600, m.MaxAge())
+		}
+
+		h := m.Header()
+		for k := range h {
+			exp, ok := expHdr[k]
+			if !ok {
+				t.Errorf("unexpected header #%d %q=%q", i, k, h.Get(k))
+			} else if act := h.Get(k); act != exp {
+				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
+			}
 		}
 	}
 }
@@ -97,6 +119,12 @@ func TestAdvertise_Bye(t *testing.T) {
 		t.Fatalf("failed to split host and port: %s", err)
 	}
 	port = ":" + port
+
+	expHdr := map[string]string{
+		"Nts": "ssdp:byebye",
+		"Nt":  "test:advertise+bye",
+		"Usn": "usn:advertise+bye",
+	}
 	for i, m := range mm {
 		if strings.HasSuffix(port, m.From.String()) {
 			t.Errorf("unmatch port#%d:\nwant=%q\n got=%q", i, port, m.From.String())
@@ -106,6 +134,16 @@ func TestAdvertise_Bye(t *testing.T) {
 		}
 		if m.USN != "usn:advertise+bye" {
 			t.Errorf("unexpected bye#%d usn: want=%q got=%q", i, "usn:advertise+bye", m.USN)
+		}
+
+		h := m.Header()
+		for k := range h {
+			exp, ok := expHdr[k]
+			if !ok {
+				t.Errorf("unexpected header #%d %q=%q", i, k, h.Get(k))
+			} else if act := h.Get(k); act != exp {
+				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
+			}
 		}
 	}
 }

@@ -66,12 +66,28 @@ func TestSearch_Request(t *testing.T) {
 		t.Fatalf("failed to split host and port: %s", err)
 	}
 	port = ":" + port
+
+	expHdr := map[string]string{
+		"Man": `"ssdp:discover"`,
+		"Mx":  "1",
+		"St":  "test:search+request",
+	}
 	for i, m := range mm {
 		if m.Type != "test:search+request" {
 			t.Errorf("unmatch type#%d:\nwant=%q\n got=%q", i, "test:search+request", m.Type)
 		}
 		if strings.HasSuffix(port, m.From.String()) {
 			t.Errorf("unmatch port#%d:\nwant=%q\n got=%q", i, port, m.From.String())
+		}
+
+		h := m.Header()
+		for k := range h {
+			exp, ok := expHdr[k]
+			if !ok {
+				t.Errorf("unexpected header #%d %q=%q", i, k, h.Get(k))
+			} else if act := h.Get(k); act != exp {
+				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
+			}
 		}
 	}
 }
@@ -149,14 +165,12 @@ func TestSearch_ServiceRawHeader(t *testing.T) {
 		}
 
 		h := s.Header()
-		for k := range s.Header() {
+		for k := range h {
 			exp, ok := expHdr[k]
 			if !ok {
-				t.Fatalf("unexpected header %q=%q", k, h.Get(k))
-			}
-			act := h.Get(k)
-			if act != exp {
-				t.Fatalf("header %q value mismatch:\nwant=%q\n got=%q", k, exp, act)
+				t.Errorf("unexpected header #%d %q=%q", i, k, h.Get(k))
+			} else if act := h.Get(k); act != exp {
+				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
 			}
 		}
 	}
