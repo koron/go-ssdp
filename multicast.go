@@ -2,7 +2,9 @@ package ssdp
 
 import (
 	"errors"
+	"io"
 	"net"
+	"strings"
 	"time"
 
 	"golang.org/x/net/ipv4"
@@ -27,16 +29,7 @@ func multicastListen(r *udpAddrResolver) (*multicastConn, error) {
 		return nil, err
 	}
 	// configure socket to use with multicast.
-	iflist, err := interfaces()
-	if err != nil {
-		conn.Close()
-		return nil, err
-	}
-	addr, err := multicastSendAddr()
-	if err != nil {
-		return nil, err
-	}
-	pconn, err := joinGroupIPv4(conn, iflist, addr)
+	pconn, iflist, err := newIPv4MulticastConn(conn)
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -47,6 +40,22 @@ func multicastListen(r *udpAddrResolver) (*multicastConn, error) {
 		pconn:  pconn,
 		iflist: iflist,
 	}, nil
+}
+
+func newIPv4MulticastConn(conn *net.UDPConn) (*ipv4.PacketConn, []net.Interface, error) {
+	iflist, err := interfaces()
+	if err != nil {
+		return nil, nil, err
+	}
+	addr, err := multicastSendAddr()
+	if err != nil {
+		return nil, nil, err
+	}
+	pconn, err := joinGroupIPv4(conn, iflist, addr)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pconn, iflist, nil
 }
 
 // joinGroupIPv4 makes the connection join to a group on interfaces.
@@ -106,6 +115,9 @@ func (mc *multicastConn) readPackets(timeout time.Duration, h packetHandler) err
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				return nil
+			}
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				return io.EOF
 			}
 			return err
 		}
