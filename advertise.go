@@ -116,18 +116,17 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 
 func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 	b := new(bytes.Buffer)
-	// FIXME: error should be checked.
 	b.WriteString("HTTP/1.1 200 OK\r\n")
-	fmt.Fprintf(b, "EXT: \r\n")
-	fmt.Fprintf(b, "ST: %s\r\n", st)
-	fmt.Fprintf(b, "USN: %s\r\n", usn)
+	_, _ = fmt.Fprintf(b, "EXT: \r\n")
+	_, _ = fmt.Fprintf(b, "ST: %s\r\n", st)
+	_, _ = fmt.Fprintf(b, "USN: %s\r\n", usn)
 	if location != "" {
-		fmt.Fprintf(b, "LOCATION: %s\r\n", location)
+		_, _ = fmt.Fprintf(b, "LOCATION: %s\r\n", location)
 	}
 	if server != "" {
-		fmt.Fprintf(b, "SERVER: %s\r\n", server)
+		_, _ = fmt.Fprintf(b, "SERVER: %s\r\n", server)
 	}
-	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
+	_, _ = fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
 	b.WriteString("\r\n")
 	return b.Bytes(), nil
 }

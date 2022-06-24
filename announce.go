@@ -31,19 +31,18 @@ func AnnounceAlive(nt, usn, location, server string, maxAge int, localAddr strin
 
 func buildAlive(raddr net.Addr, nt, usn, location, server string, maxAge int) ([]byte, error) {
 	b := new(bytes.Buffer)
-	// FIXME: error should be checked.
 	b.WriteString("NOTIFY * HTTP/1.1\r\n")
-	fmt.Fprintf(b, "HOST: %s\r\n", raddr.String())
-	fmt.Fprintf(b, "NT: %s\r\n", nt)
-	fmt.Fprintf(b, "NTS: %s\r\n", "ssdp:alive")
-	fmt.Fprintf(b, "USN: %s\r\n", usn)
+	_, _ = fmt.Fprintf(b, "HOST: %s\r\n", raddr.String())
+	_, _ = fmt.Fprintf(b, "NT: %s\r\n", nt)
+	_, _ = fmt.Fprintf(b, "NTS: %s\r\n", "ssdp:alive")
+	_, _ = fmt.Fprintf(b, "USN: %s\r\n", usn)
 	if location != "" {
-		fmt.Fprintf(b, "LOCATION: %s\r\n", location)
+		_, _ = fmt.Fprintf(b, "LOCATION: %s\r\n", location)
 	}
 	if server != "" {
-		fmt.Fprintf(b, "SERVER: %s\r\n", server)
+		_, _ = fmt.Fprintf(b, "SERVER: %s\r\n", server)
 	}
-	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
+	_, _ = fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
 	b.WriteString("\r\n")
 	return b.Bytes(), nil
 }
@@ -73,12 +72,11 @@ func AnnounceBye(nt, usn, localAddr string) error {
 
 func buildBye(raddr net.Addr, nt, usn string) ([]byte, error) {
 	b := new(bytes.Buffer)
-	// FIXME: error should be checked.
 	b.WriteString("NOTIFY * HTTP/1.1\r\n")
-	fmt.Fprintf(b, "HOST: %s\r\n", raddr.String())
-	fmt.Fprintf(b, "NT: %s\r\n", nt)
-	fmt.Fprintf(b, "NTS: %s\r\n", "ssdp:byebye")
-	fmt.Fprintf(b, "USN: %s\r\n", usn)
+	_, _ = fmt.Fprintf(b, "HOST: %s\r\n", raddr.String())
+	_, _ = fmt.Fprintf(b, "NT: %s\r\n", nt)
+	_, _ = fmt.Fprintf(b, "NTS: %s\r\n", "ssdp:byebye")
+	_, _ = fmt.Fprintf(b, "USN: %s\r\n", usn)
 	b.WriteString("\r\n")
 	return b.Bytes(), nil
 }

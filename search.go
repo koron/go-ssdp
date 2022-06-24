@@ -110,12 +110,11 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 
 func buildSearch(raddr net.Addr, searchType string, waitSec int) ([]byte, error) {
 	b := new(bytes.Buffer)
-	// FIXME: error should be checked.
 	b.WriteString("M-SEARCH * HTTP/1.1\r\n")
-	fmt.Fprintf(b, "HOST: %s\r\n", raddr.String())
-	fmt.Fprintf(b, "MAN: %q\r\n", "ssdp:discover")
-	fmt.Fprintf(b, "MX: %d\r\n", waitSec)
-	fmt.Fprintf(b, "ST: %s\r\n", searchType)
+	_, _ = fmt.Fprintf(b, "HOST: %s\r\n", raddr.String())
+	_, _ = fmt.Fprintf(b, "MAN: %q\r\n", "ssdp:discover")
+	_, _ = fmt.Fprintf(b, "MX: %d\r\n", waitSec)
+	_, _ = fmt.Fprintf(b, "ST: %s\r\n", searchType)
 	b.WriteString("\r\n")
 	return b.Bytes(), nil
 }
