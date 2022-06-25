@@ -70,7 +70,7 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 			continue
 		}
 		joined++
-		logf("joined group %s on %s", gaddr.String(), ifi.Name)
+		logf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
 	}
 	if joined == 0 {
 		return nil, errors.New("no interfaces had joined to group")
@@ -86,19 +86,38 @@ func (mc *multicastConn) Close() error {
 	return nil
 }
 
-func (mc *multicastConn) WriteTo(data []byte, to net.Addr) (int, error) {
+type multicastDataProvider interface {
+	bytes(*net.Interface) []byte
+}
+
+//type multicastDataProviderFunc func(*net.Interface) []byte
+//
+//func (f multicastDataProviderFunc) bytes(ifi *net.Interface) []byte {
+//	return f(ifi)
+//}
+
+type multicastDataProviderBytes []byte
+
+func (b multicastDataProviderBytes) bytes(ifi *net.Interface) []byte {
+	return []byte(b)
+}
+
+func (mc *multicastConn) WriteTo(dataProv multicastDataProvider, to net.Addr) (int, error) {
 	if uaddr, ok := to.(*net.UDPAddr); ok && !uaddr.IP.IsMulticast() {
-		return mc.conn.WriteTo(data, to)
+		return mc.conn.WriteTo(dataProv.bytes(nil), to)
 	}
+	sum := 0
 	for _, ifi := range mc.iflist {
 		if err := mc.pconn.SetMulticastInterface(&ifi); err != nil {
 			return 0, err
 		}
-		if _, err := mc.pconn.WriteTo(data, nil, to); err != nil {
+		n, err := mc.pconn.WriteTo(dataProv.bytes(&ifi), nil, to)
+		if err != nil {
 			return 0, err
 		}
+		sum += n
 	}
-	return len(data), nil
+	return sum, nil
 }
 
 func (mc *multicastConn) LocalAddr() net.Addr {
