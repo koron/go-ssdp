@@ -6,11 +6,11 @@ build:
 
 .PHONY: test
 test:
-	go test ./...
+	go test -gcflags '-e' ./...
 
-.PHONY: test-race
-test-race:
-	go test -race .
+.PHONY: bench
+bench:
+	go test -bench ./...
 
 .PHONY: tags
 tags:
@@ -23,15 +23,11 @@ cover:
 	go tool cover -html tmp/_cover.out -o tmp/cover.html
 
 .PHONY: checkall
-checkall: vet lint staticcheck
+checkall: vet staticcheck
 
 .PHONY: vet
 vet:
 	go vet ./...
-
-.PHONY: lint
-lint:
-	golint ./...
 
 .PHONY: staticcheck
 staticcheck:
@@ -44,6 +40,10 @@ clean: examples-clean
 	rm -f tmp/_cover.out tmp/cover.html
 
 # based on: github.com/koron-go/_skeleton/Makefile
+
+.PHONY: test-race
+test-race:
+	go test -race .
 
 .PHONY: examples
 examples: examples-build

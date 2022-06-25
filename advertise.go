@@ -12,16 +12,16 @@ import (
 
 type message struct {
 	to   net.Addr
-	data []byte
+	data multicastDataProvider
 }
 
 // Advertiser is a server to advertise a service.
 type Advertiser struct {
-	st       string
-	usn      string
-	location string
-	server   string
-	maxAge   int
+	st      string
+	usn     string
+	locProv LocationProvider
+	server  string
+	maxAge  int
 
 	conn *multicastConn
 	ch   chan *message
@@ -30,20 +30,25 @@ type Advertiser struct {
 }
 
 // Advertise starts advertisement of service.
-func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
+// location should be a string or a ssdp.LocationProvider.
+func Advertise(st, usn string, location interface{}, server string, maxAge int) (*Advertiser, error) {
+	locProv, err := toLocationProvider(location)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := multicastListen(recvAddrResolver)
 	if err != nil {
 		return nil, err
 	}
 	logf("SSDP advertise on: %s", conn.LocalAddr().String())
 	a := &Advertiser{
-		st:       st,
-		usn:      usn,
-		location: location,
-		server:   server,
-		maxAge:   maxAge,
-		conn:     conn,
-		ch:       make(chan *message),
+		st:      st,
+		usn:     usn,
+		locProv: locProv,
+		server:  server,
+		maxAge:  maxAge,
+		conn:    conn,
+		ch:      make(chan *message),
 	}
 	a.wg.Add(2)
 	a.wgS.Add(1)
@@ -72,16 +77,13 @@ func (a *Advertiser) recvMain() error {
 	return nil
 }
 
-func (a *Advertiser) sendMain() error {
+func (a *Advertiser) sendMain() {
 	for msg := range a.ch {
 		_, err := a.conn.WriteTo(msg.data, msg.to)
 		if err != nil {
-			if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
-				logf("failed to send: %s", err)
-			}
+			logf("failed to send: %s", err)
 		}
 	}
-	return nil
 }
 
 func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
@@ -106,17 +108,14 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	}
 	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
-	msg, err := buildOK(a.st, a.usn, a.location, a.server, a.maxAge)
-	if err != nil {
-		return err
-	}
-	a.ch <- &message{to: from, data: msg}
+	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge)
+	a.ch <- &message{to: from, data: multicastDataProviderBytes(msg)}
 	return nil
 }
 
-func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
+func buildOK(st, usn, location, server string, maxAge int) []byte {
+	// bytes.Buffer#Write() is never fail, so we can omit error checks.
 	b := new(bytes.Buffer)
-	// FIXME: error should be checked.
 	b.WriteString("HTTP/1.1 200 OK\r\n")
 	fmt.Fprintf(b, "EXT: \r\n")
 	fmt.Fprintf(b, "ST: %s\r\n", st)
@@ -129,7 +128,7 @@ func buildOK(st, usn, location, server string, maxAge int) ([]byte, error) {
 	}
 	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
 	b.WriteString("\r\n")
-	return b.Bytes(), nil
+	return b.Bytes()
 }
 
 // Close stops advertisement.
@@ -153,10 +152,13 @@ func (a *Advertiser) Alive() error {
 	if err != nil {
 		return err
 	}
-	msg, err := buildAlive(addr, a.st, a.usn, a.location, a.server,
-		a.maxAge)
-	if err != nil {
-		return err
+	msg := &aliveDataProvider{
+		host:     addr,
+		nt:       a.st,
+		usn:      a.usn,
+		location: a.locProv,
+		server:   a.server,
+		maxAge:   a.maxAge,
 	}
 	a.ch <- &message{to: addr, data: msg}
 	logf("sent alive")
@@ -173,7 +175,7 @@ func (a *Advertiser) Bye() error {
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: addr, data: msg}
+	a.ch <- &message{to: addr, data: multicastDataProviderBytes(msg)}
 	logf("sent bye")
 	return nil
 }
