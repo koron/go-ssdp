@@ -10,6 +10,39 @@ import (
 	"sync"
 )
 
+// Locationer provides address for Location header which can be reached from
+// "from" address network.
+type Locationer interface {
+	// Location provides an address be reachable from the network located
+	// "from" address.  "from" will be "nil" when sending Alive messages.
+	Location(from net.Addr) string
+}
+
+func toLocationer(v interface{}) (Locationer, error) {
+	switch w := v.(type) {
+	case string:
+		return fixedLocation(w), nil
+	case Locationer:
+		return w, nil
+	default:
+		return nil, fmt.Errorf("location should be a string or a ssdp.Locationer but got %T", w)
+	}
+}
+
+// LocationerFunc type is an adapter to allow the use of ordinary functions are
+// locationers.
+type LocationerFunc func(net.Addr) string
+
+func (f LocationerFunc) Location(from net.Addr) string {
+	return f(from)
+}
+
+type fixedLocation string
+
+func (s fixedLocation) Location(from net.Addr) string {
+	return string(s)
+}
+
 type message struct {
 	to   net.Addr
 	data []byte
@@ -19,7 +52,7 @@ type message struct {
 type Advertiser struct {
 	st       string
 	usn      string
-	location string
+	location Locationer
 	server   string
 	maxAge   int
 
@@ -30,7 +63,12 @@ type Advertiser struct {
 }
 
 // Advertise starts advertisement of service.
-func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error) {
+// location should be a string or a ssdp.Locationer.
+func Advertise(st, usn string, location interface{}, server string, maxAge int) (*Advertiser, error) {
+	locationer, err := toLocationer(location)
+	if err != nil {
+		return nil, err
+	}
 	conn, err := multicastListen(recvAddrResolver)
 	if err != nil {
 		return nil, err
@@ -39,7 +77,7 @@ func Advertise(st, usn, location, server string, maxAge int) (*Advertiser, error
 	a := &Advertiser{
 		st:       st,
 		usn:      usn,
-		location: location,
+		location: locationer,
 		server:   server,
 		maxAge:   maxAge,
 		conn:     conn,
@@ -72,16 +110,13 @@ func (a *Advertiser) recvMain() error {
 	return nil
 }
 
-func (a *Advertiser) sendMain() error {
+func (a *Advertiser) sendMain() {
 	for msg := range a.ch {
 		_, err := a.conn.WriteTo(msg.data, msg.to)
 		if err != nil {
-			if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
-				logf("failed to send: %s", err)
-			}
+			logf("failed to send: %s", err)
 		}
 	}
-	return nil
 }
 
 func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
@@ -106,7 +141,7 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	}
 	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
-	msg, err := buildOK(a.st, a.usn, a.location, a.server, a.maxAge)
+	msg, err := buildOK(a.st, a.usn, a.location.Location(from), a.server, a.maxAge)
 	if err != nil {
 		return err
 	}
@@ -153,8 +188,7 @@ func (a *Advertiser) Alive() error {
 	if err != nil {
 		return err
 	}
-	msg, err := buildAlive(addr, a.st, a.usn, a.location, a.server,
-		a.maxAge)
+	msg, err := buildAlive(addr, a.st, a.usn, a.location.Location(nil), a.server, a.maxAge)
 	if err != nil {
 		return err
 	}
