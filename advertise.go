@@ -17,11 +17,11 @@ type message struct {
 
 // Advertiser is a server to advertise a service.
 type Advertiser struct {
-	st       string
-	usn      string
-	location Locationer
-	server   string
-	maxAge   int
+	st      string
+	usn     string
+	locProv LocationProvider
+	server  string
+	maxAge  int
 
 	conn *multicastConn
 	ch   chan *message
@@ -30,9 +30,9 @@ type Advertiser struct {
 }
 
 // Advertise starts advertisement of service.
-// location should be a string or a ssdp.Locationer.
+// location should be a string or a ssdp.LocationProvider.
 func Advertise(st, usn string, location interface{}, server string, maxAge int) (*Advertiser, error) {
-	locationer, err := toLocationer(location)
+	locProv, err := toLocationProvider(location)
 	if err != nil {
 		return nil, err
 	}
@@ -42,13 +42,13 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int) 
 	}
 	logf("SSDP advertise on: %s", conn.LocalAddr().String())
 	a := &Advertiser{
-		st:       st,
-		usn:      usn,
-		location: locationer,
-		server:   server,
-		maxAge:   maxAge,
-		conn:     conn,
-		ch:       make(chan *message),
+		st:      st,
+		usn:     usn,
+		locProv: locProv,
+		server:  server,
+		maxAge:  maxAge,
+		conn:    conn,
+		ch:      make(chan *message),
 	}
 	a.wg.Add(2)
 	a.wgS.Add(1)
@@ -108,7 +108,7 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	}
 	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
-	msg := buildOK(a.st, a.usn, a.location.Location(from, nil), a.server, a.maxAge)
+	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge)
 	a.ch <- &message{to: from, data: multicastDataProviderBytes(msg)}
 	return nil
 }
@@ -156,7 +156,7 @@ func (a *Advertiser) Alive() error {
 		host:     addr,
 		nt:       a.st,
 		usn:      a.usn,
-		location: a.location,
+		location: a.locProv,
 		server:   a.server,
 		maxAge:   a.maxAge,
 	}

@@ -7,9 +7,9 @@ import (
 )
 
 // AnnounceAlive sends ssdp:alive message.
-// location should be a string or a ssdp.Locationer.
+// location should be a string or a ssdp.LocationProvider.
 func AnnounceAlive(nt, usn string, location interface{}, server string, maxAge int, localAddr string) error {
-	locationer, err := toLocationer(location)
+	locProv, err := toLocationProvider(location)
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func AnnounceAlive(nt, usn string, location interface{}, server string, maxAge i
 		host:     addr,
 		nt:       nt,
 		usn:      usn,
-		location: locationer,
+		location: locProv,
 		server:   server,
 		maxAge:   maxAge,
 	}
@@ -42,7 +42,7 @@ type aliveDataProvider struct {
 	host     net.Addr
 	nt       string
 	usn      string
-	location Locationer
+	location LocationProvider
 	server   string
 	maxAge   int
 }
