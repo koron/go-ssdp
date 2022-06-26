@@ -67,6 +67,7 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int) 
 }
 
 func (a *Advertiser) recvMain() error {
+	// TODO: update listening interfaces of a.conn
 	err := a.conn.ReadPackets(0, func(addr net.Addr, data []byte) error {
 		if err := a.handleRaw(addr, data); err != nil {
 			logf("failed to handle message: %s", err)
