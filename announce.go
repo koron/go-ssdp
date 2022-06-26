@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+
+	"github.com/koron/go-ssdp/internal/multicast"
 )
 
 // AnnounceAlive sends ssdp:alive message.
@@ -14,13 +16,13 @@ func AnnounceAlive(nt, usn string, location interface{}, server string, maxAge i
 		return err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicastListen(&udpAddrResolver{addr: localAddr})
+	conn, err := multicast.Listen(&multicast.AddrResolver{Addr: localAddr})
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 	// build and send message.
-	addr, err := multicastSendAddr()
+	addr, err := multicast.SendAddr()
 	if err != nil {
 		return err
 	}
@@ -47,11 +49,11 @@ type aliveDataProvider struct {
 	maxAge   int
 }
 
-func (p *aliveDataProvider) bytes(ifi *net.Interface) []byte {
+func (p *aliveDataProvider) Bytes(ifi *net.Interface) []byte {
 	return buildAlive(p.host, p.nt, p.usn, p.location.Location(nil, ifi), p.server, p.maxAge)
 }
 
-var _ multicastDataProvider = (*aliveDataProvider)(nil)
+var _ multicast.DataProvider = (*aliveDataProvider)(nil)
 
 func buildAlive(raddr net.Addr, nt, usn, location, server string, maxAge int) []byte {
 	// bytes.Buffer#Write() is never fail, so we can omit error checks.
@@ -75,13 +77,13 @@ func buildAlive(raddr net.Addr, nt, usn, location, server string, maxAge int) []
 // AnnounceBye sends ssdp:byebye message.
 func AnnounceBye(nt, usn, localAddr string) error {
 	// dial multicast UDP packet.
-	conn, err := multicastListen(&udpAddrResolver{addr: localAddr})
+	conn, err := multicast.Listen(&multicast.AddrResolver{Addr: localAddr})
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 	// build and send message.
-	addr, err := multicastSendAddr()
+	addr, err := multicast.SendAddr()
 	if err != nil {
 		return err
 	}
@@ -89,7 +91,7 @@ func AnnounceBye(nt, usn, localAddr string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := conn.WriteTo(multicastDataProviderBytes(msg), addr); err != nil {
+	if _, err := conn.WriteTo(multicast.DataBytesProvider(msg), addr); err != nil {
 		return err
 	}
 	return nil

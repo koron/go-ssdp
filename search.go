@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/koron/go-ssdp/internal/multicast"
 )
 
 // Service is discovered service.
@@ -68,7 +70,7 @@ const (
 // Search searches services by SSDP.
 func Search(searchType string, waitSec int, localAddr string) ([]Service, error) {
 	// dial multicast UDP packet.
-	conn, err := multicastListen(&udpAddrResolver{addr: localAddr})
+	conn, err := multicast.Listen(&multicast.AddrResolver{Addr: localAddr})
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +78,7 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 	logf("search on %s", conn.LocalAddr().String())
 
 	// send request.
-	addr, err := multicastSendAddr()
+	addr, err := multicast.SendAddr()
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +86,7 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := conn.WriteTo(multicastDataProviderBytes(msg), addr); err != nil {
+	if _, err := conn.WriteTo(multicast.DataBytesProvider(msg), addr); err != nil {
 		return nil, err
 	}
 
@@ -101,7 +103,7 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 		return nil
 	}
 	d := time.Second * time.Duration(waitSec)
-	if err := conn.readPackets(d, h); err != nil {
+	if err := conn.ReadPackets(d, h); err != nil {
 		return nil, err
 	}
 

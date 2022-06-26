@@ -1,13 +1,15 @@
-package ssdp
+package multicast
 
 import (
 	"net"
 	"sync"
 )
 
-// Interfaces specify target interfaces to multicast.  If no interfaces are
-// specified, all interfaces will be used.
-var Interfaces []net.Interface
+type InterfacesProviderFunc func() []net.Interface
+
+// InterfacesProvider specify a function to list all interfaces to multicast.
+// If no provider are given, all possible interfaces will be used.
+var InterfacesProvider InterfacesProviderFunc
 
 var ifLock sync.Mutex
 var ifList []net.Interface
@@ -16,8 +18,10 @@ var ifList []net.Interface
 func interfaces() ([]net.Interface, error) {
 	ifLock.Lock()
 	defer ifLock.Unlock()
-	if len(Interfaces) > 0 {
-		return Interfaces, nil
+	if InterfacesProvider != nil {
+		if list := InterfacesProvider(); len(list)>0 {
+			return list, nil
+		}
 	}
 	if len(ifList) > 0 {
 		return ifList, nil

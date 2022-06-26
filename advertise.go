@@ -8,11 +8,13 @@ import (
 	"net"
 	"net/http"
 	"sync"
+
+	"github.com/koron/go-ssdp/internal/multicast"
 )
 
 type message struct {
 	to   net.Addr
-	data multicastDataProvider
+	data multicast.DataProvider
 }
 
 // Advertiser is a server to advertise a service.
@@ -23,7 +25,7 @@ type Advertiser struct {
 	server  string
 	maxAge  int
 
-	conn *multicastConn
+	conn *multicast.Conn
 	ch   chan *message
 	wg   sync.WaitGroup
 	wgS  sync.WaitGroup
@@ -36,7 +38,7 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int) 
 	if err != nil {
 		return nil, err
 	}
-	conn, err := multicastListen(recvAddrResolver)
+	conn, err := multicast.Listen(multicast.RecvAddrResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +67,7 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int) 
 }
 
 func (a *Advertiser) recvMain() error {
-	err := a.conn.readPackets(0, func(addr net.Addr, data []byte) error {
+	err := a.conn.ReadPackets(0, func(addr net.Addr, data []byte) error {
 		if err := a.handleRaw(addr, data); err != nil {
 			logf("failed to handle message: %s", err)
 		}
@@ -109,7 +111,7 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
 	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge)
-	a.ch <- &message{to: from, data: multicastDataProviderBytes(msg)}
+	a.ch <- &message{to: from, data: multicast.DataBytesProvider(msg)}
 	return nil
 }
 
@@ -148,7 +150,7 @@ func (a *Advertiser) Close() error {
 
 // Alive announces ssdp:alive message.
 func (a *Advertiser) Alive() error {
-	addr, err := multicastSendAddr()
+	addr, err := multicast.SendAddr()
 	if err != nil {
 		return err
 	}
@@ -167,7 +169,7 @@ func (a *Advertiser) Alive() error {
 
 // Bye announces ssdp:byebye message.
 func (a *Advertiser) Bye() error {
-	addr, err := multicastSendAddr()
+	addr, err := multicast.SendAddr()
 	if err != nil {
 		return err
 	}
@@ -175,7 +177,7 @@ func (a *Advertiser) Bye() error {
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: addr, data: multicastDataProviderBytes(msg)}
+	a.ch <- &message{to: addr, data: multicast.DataBytesProvider(msg)}
 	logf("sent bye")
 	return nil
 }
