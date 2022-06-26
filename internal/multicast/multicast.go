@@ -10,6 +10,7 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
+// Conn is multicast connection.
 type Conn struct {
 	laddr  *net.UDPAddr
 	conn   *net.UDPConn
@@ -17,6 +18,7 @@ type Conn struct {
 	iflist []net.Interface
 }
 
+// Listen starts to receiving multicast messages.
 func Listen(r *AddrResolver) (*Conn, error) {
 	// prepare parameters.
 	laddr, err := r.resolve()
@@ -78,6 +80,7 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 	return wrap, nil
 }
 
+// Close closes a multicast connection.
 func (mc *Conn) Close() error {
 	if err := mc.pconn.Close(); err != nil {
 		return err
@@ -86,6 +89,7 @@ func (mc *Conn) Close() error {
 	return nil
 }
 
+// DataProvider provides a body of multicast message to send.
 type DataProvider interface {
 	Bytes(*net.Interface) []byte
 }
@@ -96,12 +100,13 @@ type DataProvider interface {
 //	return f(ifi)
 //}
 
-type DataBytesProvider []byte
+type BytesDataProvider []byte
 
-func (b DataBytesProvider) Bytes(ifi *net.Interface) []byte {
+func (b BytesDataProvider) Bytes(ifi *net.Interface) []byte {
 	return []byte(b)
 }
 
+// WriteTo sends a multicast message to interfaces.
 func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
 	if uaddr, ok := to.(*net.UDPAddr); ok && !uaddr.IP.IsMulticast() {
 		return mc.conn.WriteTo(dataProv.Bytes(nil), to)
@@ -120,10 +125,12 @@ func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
 	return sum, nil
 }
 
+// LocalAddr returns local address to listen multicast packets.
 func (mc *Conn) LocalAddr() net.Addr {
 	return mc.laddr
 }
 
+// ReadPackets reads multicast packets.
 func (mc *Conn) ReadPackets(timeout time.Duration, h PacketHandler) error {
 	buf := make([]byte, 65535)
 	if timeout > 0 {

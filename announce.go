@@ -91,7 +91,7 @@ func AnnounceBye(nt, usn, localAddr string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := conn.WriteTo(multicast.DataBytesProvider(msg), addr); err != nil {
+	if _, err := conn.WriteTo(multicast.BytesDataProvider(msg), addr); err != nil {
 		return err
 	}
 	return nil

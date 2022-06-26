@@ -112,7 +112,7 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
 	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge)
-	a.ch <- &message{to: from, data: multicast.DataBytesProvider(msg)}
+	a.ch <- &message{to: from, data: multicast.BytesDataProvider(msg)}
 	return nil
 }
 
@@ -178,7 +178,7 @@ func (a *Advertiser) Bye() error {
 	if err != nil {
 		return err
 	}
-	a.ch <- &message{to: addr, data: multicast.DataBytesProvider(msg)}
+	a.ch <- &message{to: addr, data: multicast.BytesDataProvider(msg)}
 	logf("sent bye")
 	return nil
 }

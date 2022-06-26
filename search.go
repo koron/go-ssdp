@@ -86,7 +86,7 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := conn.WriteTo(multicast.DataBytesProvider(msg), addr); err != nil {
+	if _, err := conn.WriteTo(multicast.BytesDataProvider(msg), addr); err != nil {
 		return nil, err
 	}
 

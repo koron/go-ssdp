@@ -2,7 +2,6 @@ package multicast
 
 import (
 	"net"
-	"sync"
 )
 
 type InterfacesProviderFunc func() []net.Interface
@@ -11,27 +10,14 @@ type InterfacesProviderFunc func() []net.Interface
 // If no provider are given, all possible interfaces will be used.
 var InterfacesProvider InterfacesProviderFunc
 
-var ifLock sync.Mutex
-var ifList []net.Interface
-
 // interfaces gets list of net.Interface to multicast UDP packet.
 func interfaces() ([]net.Interface, error) {
-	ifLock.Lock()
-	defer ifLock.Unlock()
 	if InterfacesProvider != nil {
-		if list := InterfacesProvider(); len(list)>0 {
+		if list := InterfacesProvider(); len(list) > 0 {
 			return list, nil
 		}
 	}
-	if len(ifList) > 0 {
-		return ifList, nil
-	}
-	l, err := interfacesIPv4()
-	if err != nil {
-		return nil, err
-	}
-	ifList = l
-	return ifList, nil
+	return interfacesIPv4()
 }
 
 // interfacesIPv4 lists net.Interface on IPv4.
