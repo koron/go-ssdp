@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/koron/go-ssdp/internal/multicast"
+	"github.com/koron/go-ssdp/internal/ssdplog"
 )
 
 // Service is discovered service.
@@ -75,7 +76,7 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 		return nil, err
 	}
 	defer conn.Close()
-	logf("search on %s", conn.LocalAddr().String())
+	ssdplog.Printf("search on %s", conn.LocalAddr().String())
 
 	// send request.
 	addr, err := multicast.SendAddr()
@@ -95,11 +96,11 @@ func Search(searchType string, waitSec int, localAddr string) ([]Service, error)
 	h := func(a net.Addr, d []byte) error {
 		srv, err := parseService(a, d)
 		if err != nil {
-			logf("invalid search response from %s: %s", a.String(), err)
+			ssdplog.Printf("invalid search response from %s: %s", a.String(), err)
 			return nil
 		}
 		list = append(list, *srv)
-		logf("search response from %s: %s", a.String(), srv.USN)
+		ssdplog.Printf("search response from %s: %s", a.String(), srv.USN)
 		return nil
 	}
 	d := time.Second * time.Duration(waitSec)

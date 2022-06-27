@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/koron/go-ssdp/internal/multicast"
+	"github.com/koron/go-ssdp/internal/ssdplog"
 )
 
 // Monitor monitors SSDP's alive and byebye messages.
@@ -29,7 +30,7 @@ func (m *Monitor) Start() error {
 	if err != nil {
 		return err
 	}
-	logf("monitoring on %s", conn.LocalAddr().String())
+	ssdplog.Printf("monitoring on %s", conn.LocalAddr().String())
 	m.conn = conn
 	m.wg.Add(1)
 	go func() {
@@ -65,7 +66,7 @@ func (m *Monitor) handleRaw(addr net.Addr, raw []byte) error {
 		return m.handleNotify(addr, raw)
 	}
 	n := bytes.Index(raw, []byte("\r\n"))
-	logf("unexpected method: %q", string(raw[:n]))
+	ssdplog.Printf("unexpected method: %q", string(raw[:n]))
 	return nil
 }
 

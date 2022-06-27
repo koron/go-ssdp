@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/koron/go-ssdp/internal/multicast"
+	"github.com/koron/go-ssdp/internal/ssdplog"
 )
 
 type message struct {
@@ -42,7 +43,7 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int) 
 	if err != nil {
 		return nil, err
 	}
-	logf("SSDP advertise on: %s", conn.LocalAddr().String())
+	ssdplog.Printf("SSDP advertise on: %s", conn.LocalAddr().String())
 	a := &Advertiser{
 		st:      st,
 		usn:     usn,
@@ -70,7 +71,7 @@ func (a *Advertiser) recvMain() error {
 	// TODO: update listening interfaces of a.conn
 	err := a.conn.ReadPackets(0, func(addr net.Addr, data []byte) error {
 		if err := a.handleRaw(addr, data); err != nil {
-			logf("failed to handle message: %s", err)
+			ssdplog.Printf("failed to handle message: %s", err)
 		}
 		return nil
 	})
@@ -84,7 +85,7 @@ func (a *Advertiser) sendMain() {
 	for msg := range a.ch {
 		_, err := a.conn.WriteTo(msg.data, msg.to)
 		if err != nil {
-			logf("failed to send: %s", err)
+			ssdplog.Printf("failed to send: %s", err)
 		}
 	}
 }
@@ -109,7 +110,7 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 		// skip when ST is not matched/expected.
 		return nil
 	}
-	logf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
+	ssdplog.Printf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
 	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge)
 	a.ch <- &message{to: from, data: multicast.BytesDataProvider(msg)}
@@ -164,7 +165,7 @@ func (a *Advertiser) Alive() error {
 		maxAge:   a.maxAge,
 	}
 	a.ch <- &message{to: addr, data: msg}
-	logf("sent alive")
+	ssdplog.Printf("sent alive")
 	return nil
 }
 
@@ -179,6 +180,6 @@ func (a *Advertiser) Bye() error {
 		return err
 	}
 	a.ch <- &message{to: addr, data: multicast.BytesDataProvider(msg)}
-	logf("sent bye")
+	ssdplog.Printf("sent bye")
 	return nil
 }

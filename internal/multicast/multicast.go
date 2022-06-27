@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/koron/go-ssdp/internal/ssdplog"
 	"golang.org/x/net/ipv4"
 )
 
@@ -68,11 +69,11 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 	joined := 0
 	for _, ifi := range iflist {
 		if err := wrap.JoinGroup(&ifi, gaddr); err != nil {
-			//logf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
+			ssdplog.Printf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
 			continue
 		}
 		joined++
-		//logf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
+		ssdplog.Printf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
 	}
 	if joined == 0 {
 		return nil, errors.New("no interfaces had joined to group")
