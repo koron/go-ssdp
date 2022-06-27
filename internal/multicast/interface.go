@@ -12,8 +12,8 @@ var InterfacesProvider InterfacesProviderFunc
 
 // interfaces gets list of net.Interface to multicast UDP packet.
 func interfaces() ([]net.Interface, error) {
-	if InterfacesProvider != nil {
-		if list := InterfacesProvider(); len(list) > 0 {
+	if p := InterfacesProvider; p != nil {
+		if list := p(); len(list) > 0 {
 			return list, nil
 		}
 	}
