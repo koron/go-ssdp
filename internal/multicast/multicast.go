@@ -1,4 +1,4 @@
-package ssdp
+package multicast
 
 import (
 	"errors"
@@ -7,17 +7,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/koron/go-ssdp/internal/ssdplog"
 	"golang.org/x/net/ipv4"
 )
 
-type multicastConn struct {
+// Conn is multicast connection.
+type Conn struct {
 	laddr  *net.UDPAddr
 	conn   *net.UDPConn
 	pconn  *ipv4.PacketConn
 	iflist []net.Interface
 }
 
-func multicastListen(r *udpAddrResolver) (*multicastConn, error) {
+// Listen starts to receiving multicast messages.
+func Listen(r *AddrResolver) (*Conn, error) {
 	// prepare parameters.
 	laddr, err := r.resolve()
 	if err != nil {
@@ -34,7 +37,7 @@ func multicastListen(r *udpAddrResolver) (*multicastConn, error) {
 		conn.Close()
 		return nil, err
 	}
-	return &multicastConn{
+	return &Conn{
 		laddr:  laddr,
 		conn:   conn,
 		pconn:  pconn,
@@ -47,7 +50,7 @@ func newIPv4MulticastConn(conn *net.UDPConn) (*ipv4.PacketConn, []net.Interface,
 	if err != nil {
 		return nil, nil, err
 	}
-	addr, err := multicastSendAddr()
+	addr, err := SendAddr()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -66,11 +69,11 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 	joined := 0
 	for _, ifi := range iflist {
 		if err := wrap.JoinGroup(&ifi, gaddr); err != nil {
-			logf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
+			ssdplog.Printf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
 			continue
 		}
 		joined++
-		logf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
+		ssdplog.Printf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
 	}
 	if joined == 0 {
 		return nil, errors.New("no interfaces had joined to group")
@@ -78,7 +81,8 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 	return wrap, nil
 }
 
-func (mc *multicastConn) Close() error {
+// Close closes a multicast connection.
+func (mc *Conn) Close() error {
 	if err := mc.pconn.Close(); err != nil {
 		return err
 	}
@@ -86,32 +90,34 @@ func (mc *multicastConn) Close() error {
 	return nil
 }
 
-type multicastDataProvider interface {
-	bytes(*net.Interface) []byte
+// DataProvider provides a body of multicast message to send.
+type DataProvider interface {
+	Bytes(*net.Interface) []byte
 }
 
 //type multicastDataProviderFunc func(*net.Interface) []byte
 //
-//func (f multicastDataProviderFunc) bytes(ifi *net.Interface) []byte {
+//func (f multicastDataProviderFunc) Bytes(ifi *net.Interface) []byte {
 //	return f(ifi)
 //}
 
-type multicastDataProviderBytes []byte
+type BytesDataProvider []byte
 
-func (b multicastDataProviderBytes) bytes(ifi *net.Interface) []byte {
+func (b BytesDataProvider) Bytes(ifi *net.Interface) []byte {
 	return []byte(b)
 }
 
-func (mc *multicastConn) WriteTo(dataProv multicastDataProvider, to net.Addr) (int, error) {
+// WriteTo sends a multicast message to interfaces.
+func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
 	if uaddr, ok := to.(*net.UDPAddr); ok && !uaddr.IP.IsMulticast() {
-		return mc.conn.WriteTo(dataProv.bytes(nil), to)
+		return mc.conn.WriteTo(dataProv.Bytes(nil), to)
 	}
 	sum := 0
 	for _, ifi := range mc.iflist {
 		if err := mc.pconn.SetMulticastInterface(&ifi); err != nil {
 			return 0, err
 		}
-		n, err := mc.pconn.WriteTo(dataProv.bytes(&ifi), nil, to)
+		n, err := mc.pconn.WriteTo(dataProv.Bytes(&ifi), nil, to)
 		if err != nil {
 			return 0, err
 		}
@@ -120,11 +126,13 @@ func (mc *multicastConn) WriteTo(dataProv multicastDataProvider, to net.Addr) (i
 	return sum, nil
 }
 
-func (mc *multicastConn) LocalAddr() net.Addr {
+// LocalAddr returns local address to listen multicast packets.
+func (mc *Conn) LocalAddr() net.Addr {
 	return mc.laddr
 }
 
-func (mc *multicastConn) readPackets(timeout time.Duration, h packetHandler) error {
+// ReadPackets reads multicast packets.
+func (mc *Conn) ReadPackets(timeout time.Duration, h PacketHandler) error {
 	buf := make([]byte, 65535)
 	if timeout > 0 {
 		mc.pconn.SetReadDeadline(time.Now().Add(timeout))
