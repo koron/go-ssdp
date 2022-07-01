@@ -28,7 +28,7 @@ func interfacesIPv4() ([]net.Interface, error) {
 	}
 	list := make([]net.Interface, 0, len(iflist))
 	for _, ifi := range iflist {
-		if !hasLinkUp(&ifi) || !hasIPv4Address(&ifi) {
+		if !hasLinkUp(&ifi) || !hasMulticast(&ifi) || !hasIPv4Address(&ifi) {
 			continue
 		}
 		list = append(list, ifi)
@@ -39,6 +39,11 @@ func interfacesIPv4() ([]net.Interface, error) {
 // hasLinkUp checks an I/F have link-up or not.
 func hasLinkUp(ifi *net.Interface) bool {
 	return ifi.Flags&net.FlagUp != 0
+}
+
+// hasMulticast checks an I/F supports multicast or not.
+func hasMulticast(ifi *net.Interface) bool {
+	return ifi.Flags&net.FlagMulticast != 0
 }
 
 // hasIPv4Address checks an I/F have IPv4 address.
