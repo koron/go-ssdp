@@ -41,7 +41,8 @@ func (r *AddrResolver) resolve() (*net.UDPAddr, error) {
 	return r.udp, r.err
 }
 
-var RecvAddrResolver = &AddrResolver{Addr: "224.0.0.1:1900"}
+//var RecvAddrResolver = &AddrResolver{Addr: "224.0.0.1:1900"}
+var RecvAddrResolver = &AddrResolver{Addr: "[FF02::C]:1900"}
 
 // SetRecvAddrIPv4 updates multicast address where to receive packets.
 // This never fail now.
