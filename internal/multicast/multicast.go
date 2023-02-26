@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/koron/go-ssdp/internal/ssdplog"
-	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
 )
 
 // Conn is multicast connection.
 type Conn struct {
 	laddr  *net.UDPAddr
 	conn   *net.UDPConn
-	pconn  *ipv4.PacketConn
+	pconn  *ipv6.PacketConn
 	iflist []net.Interface
 }
 
@@ -27,7 +27,7 @@ func Listen(r *AddrResolver) (*Conn, error) {
 		return nil, err
 	}
 	// connect.
-	conn, err := net.ListenUDP("udp4", laddr)
+	conn, err := net.ListenUDP("udp", laddr)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func Listen(r *AddrResolver) (*Conn, error) {
 	}, nil
 }
 
-func newIPv4MulticastConn(conn *net.UDPConn) (*ipv4.PacketConn, []net.Interface, error) {
+func newIPv4MulticastConn(conn *net.UDPConn) (*ipv6.PacketConn, []net.Interface, error) {
 	iflist, err := interfaces()
 	if err != nil {
 		return nil, nil, err
@@ -62,8 +62,8 @@ func newIPv4MulticastConn(conn *net.UDPConn) (*ipv4.PacketConn, []net.Interface,
 }
 
 // joinGroupIPv4 makes the connection join to a group on interfaces.
-func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*ipv4.PacketConn, error) {
-	wrap := ipv4.NewPacketConn(conn)
+func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*ipv6.PacketConn, error) {
+	wrap := ipv6.NewPacketConn(conn)
 	wrap.SetMulticastLoopback(true)
 	// add interfaces to multicast group.
 	joined := 0

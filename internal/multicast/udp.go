@@ -37,11 +37,12 @@ func (r *AddrResolver) resolve() (*net.UDPAddr, error) {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.udp, r.err = net.ResolveUDPAddr("udp4", r.Addr)
+	r.udp, r.err = net.ResolveUDPAddr("udp", r.Addr)
 	return r.udp, r.err
 }
 
-var RecvAddrResolver = &AddrResolver{Addr: "224.0.0.1:1900"}
+//var RecvAddrResolver = &AddrResolver{Addr: "224.0.0.1:1900"}
+var RecvAddrResolver = &AddrResolver{Addr: "[FF02::C]:1900"}
 
 // SetRecvAddrIPv4 updates multicast address where to receive packets.
 // This never fail now.
@@ -50,7 +51,8 @@ func SetRecvAddrIPv4(addr string) error {
 	return nil
 }
 
-var sendAddrResolver = &AddrResolver{Addr: "239.255.255.250:1900"}
+//var sendAddrResolver = &AddrResolver{Addr: "239.255.255.250:1900"}
+var sendAddrResolver = &AddrResolver{Addr: "[FF02::C]:1900"}
 
 // SendAddr returns an address to send multicast UDP package.
 func SendAddr() (*net.UDPAddr, error) {
