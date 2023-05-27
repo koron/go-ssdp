@@ -1,6 +1,3 @@
-//go:build !android
-// +build !android
-
 package multicast
 
 import (
@@ -49,19 +46,15 @@ func Listen(r *AddrResolver) (*Conn, error) {
 }
 
 func newIPv4MulticastConn(conn *net.UDPConn) (*ipv4.PacketConn, []net.Interface, error) {
-	iflist, err := interfaces()
-	if err != nil {
-		return nil, nil, err
-	}
 	addr, err := SendAddr()
 	if err != nil {
 		return nil, nil, err
 	}
-	pconn, err := joinGroupIPv4(conn, iflist, addr)
+	pconn, err := joinGroupIPv4(conn, nil, addr)
 	if err != nil {
 		return nil, nil, err
 	}
-	return pconn, iflist, nil
+	return pconn, nil, nil
 }
 
 // joinGroupIPv4 makes the connection join to a group on interfaces.
@@ -70,6 +63,15 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 	wrap.SetMulticastLoopback(true)
 	// add interfaces to multicast group.
 	joined := 0
+
+	if iflist == nil {
+		if err := wrap.JoinGroup(nil, gaddr); err != nil {
+			return nil, errors.New("no interfaces had joined to group")
+		}
+
+		return wrap, nil
+	}
+
 	for _, ifi := range iflist {
 		if err := wrap.JoinGroup(&ifi, gaddr); err != nil {
 			ssdplog.Printf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
@@ -78,6 +80,7 @@ func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*
 		joined++
 		ssdplog.Printf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
 	}
+
 	if joined == 0 {
 		return nil, errors.New("no interfaces had joined to group")
 	}
@@ -112,9 +115,11 @@ func (b BytesDataProvider) Bytes(ifi *net.Interface) []byte {
 
 // WriteTo sends a multicast message to interfaces.
 func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
-	if uaddr, ok := to.(*net.UDPAddr); ok && !uaddr.IP.IsMulticast() {
+
+	if uaddr, ok := to.(*net.UDPAddr); (ok && !uaddr.IP.IsMulticast()) || mc.iflist == nil {
 		return mc.conn.WriteTo(dataProv.Bytes(nil), to)
 	}
+
 	sum := 0
 	for _, ifi := range mc.iflist {
 		if err := mc.pconn.SetMulticastInterface(&ifi); err != nil {
