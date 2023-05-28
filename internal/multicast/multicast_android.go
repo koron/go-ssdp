@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/koron/go-ssdp/internal/ssdplog"
 	"golang.org/x/net/ipv4"
 )
 
@@ -50,7 +49,7 @@ func newIPv4MulticastConn(conn *net.UDPConn) (*ipv4.PacketConn, []net.Interface,
 	if err != nil {
 		return nil, nil, err
 	}
-	pconn, err := joinGroupIPv4(conn, nil, addr)
+	pconn, err := joinGroupIPv4(conn, addr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -58,33 +57,16 @@ func newIPv4MulticastConn(conn *net.UDPConn) (*ipv4.PacketConn, []net.Interface,
 }
 
 // joinGroupIPv4 makes the connection join to a group on interfaces.
-func joinGroupIPv4(conn *net.UDPConn, iflist []net.Interface, gaddr net.Addr) (*ipv4.PacketConn, error) {
+func joinGroupIPv4(conn *net.UDPConn, gaddr net.Addr) (*ipv4.PacketConn, error) {
 	wrap := ipv4.NewPacketConn(conn)
 	wrap.SetMulticastLoopback(true)
-	// add interfaces to multicast group.
-	joined := 0
 
-	if iflist == nil {
-		if err := wrap.JoinGroup(nil, gaddr); err != nil {
-			return nil, errors.New("no interfaces had joined to group")
-		}
-
-		return wrap, nil
-	}
-
-	for _, ifi := range iflist {
-		if err := wrap.JoinGroup(&ifi, gaddr); err != nil {
-			ssdplog.Printf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
-			continue
-		}
-		joined++
-		ssdplog.Printf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
-	}
-
-	if joined == 0 {
+	if err := wrap.JoinGroup(nil, gaddr); err != nil {
 		return nil, errors.New("no interfaces had joined to group")
 	}
+
 	return wrap, nil
+
 }
 
 // Close closes a multicast connection.
@@ -101,12 +83,6 @@ type DataProvider interface {
 	Bytes(*net.Interface) []byte
 }
 
-//type multicastDataProviderFunc func(*net.Interface) []byte
-//
-//func (f multicastDataProviderFunc) Bytes(ifi *net.Interface) []byte {
-//	return f(ifi)
-//}
-
 type BytesDataProvider []byte
 
 func (b BytesDataProvider) Bytes(ifi *net.Interface) []byte {
@@ -115,7 +91,6 @@ func (b BytesDataProvider) Bytes(ifi *net.Interface) []byte {
 
 // WriteTo sends a multicast message to interfaces.
 func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
-
 	if uaddr, ok := to.(*net.UDPAddr); (ok && !uaddr.IP.IsMulticast()) || mc.iflist == nil {
 		return mc.conn.WriteTo(dataProv.Bytes(nil), to)
 	}
