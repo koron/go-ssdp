@@ -8,10 +8,14 @@ import (
 	"github.com/koron/go-ssdp"
 )
 
+var filterType string
+
 func main() {
 	v := flag.Bool("v", false, "verbose mode")
 	h := flag.Bool("h", false, "show help")
+	flag.StringVar(&filterType, "filter_type", "", "print only a specified type (ST or NT). default is print all types.")
 	flag.Parse()
+
 	if *h {
 		flag.Usage()
 		return
@@ -33,15 +37,35 @@ func main() {
 	<-ch
 }
 
+// filterByType returns true when given type must be hidden.
+func filterByType(typ string) bool {
+	if filterType != "" && filterType != typ {
+		return true
+	}
+	return false
+}
+
 func onAlive(m *ssdp.AliveMessage) {
+	if filterByType(m.Type) {
+		return
+	}
+
 	log.Printf("Alive: From=%s Type=%s USN=%s Location=%s Server=%s MaxAge=%d",
 		m.From.String(), m.Type, m.USN, m.Location, m.Server, m.MaxAge())
 }
 
 func onBye(m *ssdp.ByeMessage) {
+	if filterByType(m.Type) {
+		return
+	}
+
 	log.Printf("Bye: From=%s Type=%s USN=%s", m.From.String(), m.Type, m.USN)
 }
 
 func onSearch(m *ssdp.SearchMessage) {
+	if filterByType(m.Type) {
+		return
+	}
+
 	log.Printf("Search: From=%s Type=%s", m.From.String(), m.Type)
 }
