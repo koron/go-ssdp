@@ -35,3 +35,16 @@ func SetMulticastRecvAddrIPv4(addr string) error {
 func SetMulticastSendAddrIPv4(addr string) error {
 	return multicast.SetSendAddrIPv4(addr)
 }
+
+// SetMulticastSystemAssignedInterface updates state whether using the system
+// assigned multicast interface or provided interfaces.
+// Default is "false", it uses provided interface (see Interfaces also).
+func SetMulticastSystemAssignedInterface(enable bool) {
+	multicast.SystemAssignedInterface = enable
+}
+
+// GetMulticastSystemAssignedInterface returns state using the system assigned
+// multicast interface or provided interfaces.
+func GetMulticastSystemAssignedInterface() bool {
+	return multicast.SystemAssignedInterface
+}
