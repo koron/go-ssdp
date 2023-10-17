@@ -36,18 +36,36 @@ func SetMulticastSendAddrIPv4(addr string) error {
 	return multicast.SetSendAddrIPv4(addr)
 }
 
-var multicastTTL int
-
 func defaultConnOpts() []multicast.ConnOption {
 	var opts []multicast.ConnOption
 	if multicastTTL > 0 {
 		opts = append(opts, multicast.ConnTTL(multicastTTL))
 	}
+	if multicastSystemAssignedInterface {
+		opts = append(opts, multicast.ConnSystemAssginedInterface())
+	}
 	return opts
 }
+
+var multicastTTL int
 
 // SetMulticastTTL sets default TTL of SSDP's UDP packets.
 // 0 default, 1 or greater set TTL.
 func SetMulticastTTL(ttl int) {
 	multicastTTL = ttl
+}
+
+var multicastSystemAssignedInterface bool
+
+// SetMulticastSystemAssignedInterface updates state whether using the system
+// assigned multicast interface or provided interfaces.
+// Default is "false", it uses provided interface (see Interfaces also).
+func SetMulticastSystemAssignedInterface(enable bool) {
+	multicastSystemAssignedInterface = enable
+}
+
+// GetMulticastSystemAssignedInterface returns state using the system assigned
+// multicast interface or provided interfaces.
+func GetMulticastSystemAssignedInterface() bool {
+	return multicastSystemAssignedInterface
 }
