@@ -175,3 +175,56 @@ func TestSearch_ServiceRawHeader(t *testing.T) {
 		}
 	}
 }
+
+func TestSearch_AdvetiserWithHost(t *testing.T) {
+	a, err := Advertise("test:search+advertiserwithhost", "usn:search+advertiserwithhost", "location:search+advertiserwithhost", "server:search+advertiserwithhost", 600, AdvertiserOptionAddHost())
+	if err != nil {
+		t.Fatalf("failed to Advertise: %s", err)
+	}
+	defer a.Close()
+
+	srvs, err := Search("test:search+advertiserwithhost", 1, "")
+	if err != nil {
+		t.Fatalf("failed to Search: %s", err)
+	}
+	if len(srvs) == 0 {
+		t.Fatal("no services found")
+	}
+
+	expHdr := map[string]string{
+		"St":            "test:search+advertiserwithhost",
+		"Usn":           "usn:search+advertiserwithhost",
+		"Location":      "location:search+advertiserwithhost",
+		"Server":        "server:search+advertiserwithhost",
+		"Cache-Control": "max-age=600",
+		"Ext":           "",
+		"Host":          "239.255.255.250:1900",
+	}
+	for i, s := range srvs {
+		if s.Type != "test:search+advertiserwithhost" {
+			t.Errorf("unmatch type#%d:\nwant=%q\n got=%q", i, "test:search+request", s.Type)
+		}
+		if s.USN != "usn:search+advertiserwithhost" {
+			t.Errorf("unexpected alive#%d usn: want=%q got=%q", i, "usn:search+advertiserwithhost", s.USN)
+		}
+		if s.Location != "location:search+advertiserwithhost" {
+			t.Errorf("unexpected alive#%d location: want=%q got=%q", i, "location:search+advertiserwithhost", s.Location)
+		}
+		if s.Server != "server:search+advertiserwithhost" {
+			t.Errorf("unexpected alive#%d server: want=%q got=%q", i, "server:search+advertiserwithhost", s.Server)
+		}
+		if s.MaxAge() != 600 {
+			t.Errorf("unexpected max-age: want=%d got=%d", 600, s.MaxAge())
+		}
+
+		h := s.Header()
+		for k := range h {
+			exp, ok := expHdr[k]
+			if !ok {
+				t.Errorf("unexpected header #%d %q=%q", i, k, h.Get(k))
+			} else if act := h.Get(k); act != exp {
+				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
+			}
+		}
+	}
+}
