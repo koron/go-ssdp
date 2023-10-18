@@ -30,11 +30,16 @@ type Advertiser struct {
 	ch   chan *message
 	wg   sync.WaitGroup
 	wgS  sync.WaitGroup
+
+	// addHost is an optional flag to add HOST header for M-SEARCH response.
+	// It is to support SmartThings.
+	// See https://github.com/koron/go-ssdp/issues/30 for details
+	addHost bool
 }
 
 // Advertise starts advertisement of service.
 // location should be a string or a ssdp.LocationProvider.
-func Advertise(st, usn string, location interface{}, server string, maxAge int) (*Advertiser, error) {
+func Advertise(st, usn string, location interface{}, server string, maxAge int, opts ...AdvertiserOption) (*Advertiser, error) {
 	locProv, err := toLocationProvider(location)
 	if err != nil {
 		return nil, err
@@ -52,6 +57,9 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int) 
 		maxAge:  maxAge,
 		conn:    conn,
 		ch:      make(chan *message),
+	}
+	for _, o := range opts {
+		o.apply(a)
 	}
 	a.wg.Add(2)
 	a.wgS.Add(1)
@@ -112,12 +120,20 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	}
 	ssdplog.Printf("received M-SEARCH MAN=%s ST=%s from %s", man, st, from.String())
 	// build and send a response.
-	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge)
+	var host string
+	if a.addHost {
+		addr, err := multicast.SendAddr()
+		if err != nil {
+			return err
+		}
+		host = addr.String()
+	}
+	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge, host)
 	a.ch <- &message{to: from, data: multicast.BytesDataProvider(msg)}
 	return nil
 }
 
-func buildOK(st, usn, location, server string, maxAge int) []byte {
+func buildOK(st, usn, location, server string, maxAge int, host string) []byte {
 	// bytes.Buffer#Write() is never fail, so we can omit error checks.
 	b := new(bytes.Buffer)
 	b.WriteString("HTTP/1.1 200 OK\r\n")
@@ -131,6 +147,9 @@ func buildOK(st, usn, location, server string, maxAge int) []byte {
 		fmt.Fprintf(b, "SERVER: %s\r\n", server)
 	}
 	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
+	if host != "" {
+		fmt.Fprintf(b, "HOST: %s\r\n", host)
+	}
 	b.WriteString("\r\n")
 	return b.Bytes()
 }
@@ -182,4 +201,24 @@ func (a *Advertiser) Bye() error {
 	a.ch <- &message{to: addr, data: multicast.BytesDataProvider(msg)}
 	ssdplog.Printf("sent bye")
 	return nil
+}
+
+// AdvertiserOption configures for specific behavior of Advertiser.
+type AdvertiserOption interface {
+	apply(*Advertiser)
+}
+
+type advertiserOptionFunc func(*Advertiser)
+
+func (af advertiserOptionFunc) apply(a *Advertiser) {
+	af(a)
+}
+
+// AdvertiserOptionAddHost returns as AdvertiserOption that add HOST header
+// response for M-SEARCH request.  This is added to support SmartThings.
+// See https://github.com/koron/go-ssdp/issues/30 for details.
+func AdvertiserOptionAddHost() AdvertiserOption {
+	return advertiserOptionFunc(func(a *Advertiser) {
+		a.addHost = true
+	})
 }
