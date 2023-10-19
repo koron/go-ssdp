@@ -44,7 +44,7 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int, 
 	if err != nil {
 		return nil, err
 	}
-	conn, err := multicast.Listen(multicast.RecvAddrResolver)
+	conn, err := multicast.Listen(multicast.RecvAddrResolver, defaultConnOpts()...)
 	if err != nil {
 		return nil, err
 	}

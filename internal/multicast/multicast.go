@@ -13,18 +13,28 @@ import (
 
 // Conn is multicast connection.
 type Conn struct {
-	laddr  *net.UDPAddr
-	conn   *net.UDPConn
-	pconn  *ipv4.PacketConn
-	iflist []net.Interface
+	laddr *net.UDPAddr
+	pconn *ipv4.PacketConn
+
+	// ifps stores pointers of multicast interface.
+	ifps []*net.Interface
+}
+
+type connConfig struct {
+	ttl int
 }
 
 // Listen starts to receiving multicast messages.
-func Listen(r *AddrResolver) (*Conn, error) {
+func Listen(r *AddrResolver, opts ...ConnOption) (*Conn, error) {
 	// prepare parameters.
 	laddr, err := r.resolve()
 	if err != nil {
 		return nil, err
+	}
+	// configure connection
+	var cfg connConfig
+	for _, o := range opts {
+		o.apply(&cfg)
 	}
 	// connect.
 	conn, err := net.ListenUDP("udp4", laddr)
@@ -37,11 +47,23 @@ func Listen(r *AddrResolver) (*Conn, error) {
 		conn.Close()
 		return nil, err
 	}
+	// store interfaces by pointer.
+	ifplist := make([]*net.Interface, 0, len(iflist))
+	for i := range iflist {
+		ifplist = append(ifplist, &iflist[i])
+	}
+	// set TTL
+	if cfg.ttl > 0 {
+		err := pconn.SetTTL(cfg.ttl)
+		if err != nil {
+			pconn.Close()
+			return nil, err
+		}
+	}
 	return &Conn{
-		laddr:  laddr,
-		conn:   conn,
-		pconn:  pconn,
-		iflist: iflist,
+		laddr: laddr,
+		pconn: pconn,
+		ifps:  ifplist,
 	}, nil
 }
 
@@ -86,7 +108,7 @@ func (mc *Conn) Close() error {
 	if err := mc.pconn.Close(); err != nil {
 		return err
 	}
-	// mc.conn is closed by mc.pconn.Close()
+	// based net.UDPConn will be closed by mc.pconn.Close()
 	return nil
 }
 
@@ -110,20 +132,24 @@ func (b BytesDataProvider) Bytes(ifi *net.Interface) []byte {
 // WriteTo sends a multicast message to interfaces.
 func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
 	if uaddr, ok := to.(*net.UDPAddr); ok && !uaddr.IP.IsMulticast() {
-		return mc.conn.WriteTo(dataProv.Bytes(nil), to)
+		return mc.writeToIfi(dataProv, to, nil)
 	}
 	sum := 0
-	for _, ifi := range mc.iflist {
-		if err := mc.pconn.SetMulticastInterface(&ifi); err != nil {
-			return 0, err
-		}
-		n, err := mc.pconn.WriteTo(dataProv.Bytes(&ifi), nil, to)
+	for _, ifp := range mc.ifps {
+		n, err := mc.writeToIfi(dataProv, to, ifp)
 		if err != nil {
 			return 0, err
 		}
 		sum += n
 	}
 	return sum, nil
+}
+
+func (mc *Conn) writeToIfi(dataProv DataProvider, to net.Addr, ifi *net.Interface) (int, error) {
+	if err := mc.pconn.SetMulticastInterface(ifi); err != nil {
+		return 0, err
+	}
+	return mc.pconn.WriteTo(dataProv.Bytes(ifi), nil, to)
 }
 
 // LocalAddr returns local address to listen multicast packets.
@@ -152,4 +178,22 @@ func (mc *Conn) ReadPackets(timeout time.Duration, h PacketHandler) error {
 			return err
 		}
 	}
+}
+
+// ConnOption is option for Listen()
+type ConnOption interface {
+	apply(cfg *connConfig)
+}
+
+type connOptFunc func(*connConfig)
+
+func (f connOptFunc) apply(cfg *connConfig) {
+	f(cfg)
+}
+
+// ConnTTL returns as ConnOption that set default TTL to the connection.
+func ConnTTL(ttl int) ConnOption {
+	return connOptFunc(func(cfg *connConfig) {
+		cfg.ttl = ttl
+	})
 }

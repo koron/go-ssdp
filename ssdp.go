@@ -35,3 +35,19 @@ func SetMulticastRecvAddrIPv4(addr string) error {
 func SetMulticastSendAddrIPv4(addr string) error {
 	return multicast.SetSendAddrIPv4(addr)
 }
+
+var multicastTTL int
+
+func defaultConnOpts() []multicast.ConnOption {
+	var opts []multicast.ConnOption
+	if multicastTTL > 0 {
+		opts = append(opts, multicast.ConnTTL(multicastTTL))
+	}
+	return opts
+}
+
+// SetMulticastTTL sets default TTL of SSDP's UDP packets.
+// 0 default, 1 or greater set TTL.
+func SetMulticastTTL(ttl int) {
+	multicastTTL = ttl
+}
