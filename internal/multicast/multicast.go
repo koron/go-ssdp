@@ -26,9 +26,9 @@ type connConfig struct {
 }
 
 // Listen starts to receiving multicast messages.
-func Listen(localResolver Resolver, opts ...ConnOption) (*Conn, error) {
+func Listen(laddrResolver, raddrResolver Resolver, opts ...ConnOption) (*Conn, error) {
 	// prepare parameters.
-	laddr, err := localResolver.Resolve()
+	laddr, err := laddrResolver.Resolve()
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func Listen(localResolver Resolver, opts ...ConnOption) (*Conn, error) {
 		return nil, err
 	}
 	// configure socket to use with multicast.
-	pconn, ifplist, err := newIPv4MulticastConn(conn, cfg.sysIf)
+	pconn, ifplist, err := newIPv4MulticastConn(conn, raddrResolver, cfg.sysIf)
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -65,7 +65,7 @@ func Listen(localResolver Resolver, opts ...ConnOption) (*Conn, error) {
 
 // newIPv4MulticastConn create a new multicast connection.
 // 2nd return parameter will be nil when sysIf is true.
-func newIPv4MulticastConn(conn *net.UDPConn, sysIf bool) (*ipv4.PacketConn, []*net.Interface, error) {
+func newIPv4MulticastConn(conn *net.UDPConn, raddrResolver Resolver, sysIf bool) (*ipv4.PacketConn, []*net.Interface, error) {
 	// sysIf: use system assigned multicast interface.
 	// the empty iflist indicate it.
 	var ifplist []*net.Interface
@@ -79,12 +79,11 @@ func newIPv4MulticastConn(conn *net.UDPConn, sysIf bool) (*ipv4.PacketConn, []*n
 			ifplist = append(ifplist, &list[i])
 		}
 	}
-	// TODO: make raddr/gaddr configurable
-	addr, err := RemoteAddrResolver.Resolve()
+	raddr, err := raddrResolver.Resolve()
 	if err != nil {
 		return nil, nil, err
 	}
-	pconn, err := joinGroupIPv4(conn, ifplist, addr)
+	pconn, err := joinGroupIPv4(conn, ifplist, raddr)
 	if err != nil {
 		return nil, nil, err
 	}

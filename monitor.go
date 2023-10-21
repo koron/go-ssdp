@@ -32,7 +32,7 @@ func (m *Monitor) Start() error {
 	if err != nil {
 		return err
 	}
-	conn, err := multicast.Listen(cfg.laddrResolver(), cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(cfg.laddrResolver(), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return err
 	}

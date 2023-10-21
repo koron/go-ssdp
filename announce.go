@@ -20,7 +20,7 @@ func AnnounceAlive(nt, usn string, location interface{}, server string, maxAge i
 		return err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return err
 	}
@@ -79,13 +79,13 @@ func buildAlive(raddr net.Addr, nt, usn, location, server string, maxAge int) []
 }
 
 // AnnounceBye sends ssdp:byebye message.
-func AnnounceBye(nt, usn, localAddr string, opts...Option) error {
+func AnnounceBye(nt, usn, localAddr string, opts ...Option) error {
 	cfg, err := opts2config(opts)
 	if err != nil {
 		return err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return err
 	}
