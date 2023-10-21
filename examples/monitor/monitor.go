@@ -14,6 +14,8 @@ func main() {
 	v := flag.Bool("v", false, "verbose mode")
 	h := flag.Bool("h", false, "show help")
 	flag.StringVar(&filterType, "filter_type", "", "print only a specified type (ST or NT). default is print all types.")
+	ttl := flag.Int("ttl", 0, "TTL for outgoing multicast packets")
+	sysIf := flag.Bool("sysif", false, "use system assigned multicast interface")
 	flag.Parse()
 
 	if *h {
@@ -24,10 +26,19 @@ func main() {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
 
+	var opts []ssdp.Option
+	if *ttl > 0 {
+		opts = append(opts, ssdp.TTL(*ttl))
+	}
+	if *sysIf {
+		opts = append(opts, ssdp.OnlySystemInterface())
+	}
+
 	m := &ssdp.Monitor{
-		Alive:  onAlive,
-		Bye:    onBye,
-		Search: onSearch,
+		Alive:   onAlive,
+		Bye:     onBye,
+		Search:  onSearch,
+		Options: opts,
 	}
 	if err := m.Start(); err != nil {
 		log.Fatal(err)

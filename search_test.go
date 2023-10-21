@@ -177,7 +177,7 @@ func TestSearch_ServiceRawHeader(t *testing.T) {
 }
 
 func TestSearch_AdvetiserWithHost(t *testing.T) {
-	a, err := Advertise("test:search+advertiserwithhost", "usn:search+advertiserwithhost", "location:search+advertiserwithhost", "server:search+advertiserwithhost", 600, AdvertiserOptionAddHost())
+	a, err := Advertise("test:search+advertiserwithhost", "usn:search+advertiserwithhost", "location:search+advertiserwithhost", "server:search+advertiserwithhost", 600, AdvertiseHost())
 	if err != nil {
 		t.Fatalf("failed to Advertise: %s", err)
 	}

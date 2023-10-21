@@ -15,6 +15,8 @@ func main() {
 	srv := flag.String("srv", "", "SERVER:  server header")
 	maxAge := flag.Int("maxage", 1800, "cache control, max-age")
 	laddr := flag.String("laddr", "", "local address to listen")
+	ttl := flag.Int("ttl", 0, "TTL for outgoing multicast packets")
+	sysIf := flag.Bool("sysif", false, "use system assigned multicast interface")
 	v := flag.Bool("v", false, "verbose mode")
 	h := flag.Bool("h", false, "show help")
 	flag.Parse()
@@ -27,7 +29,15 @@ func main() {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
 
-	err := ssdp.AnnounceAlive(*nt, *usn, *loc, *srv, *maxAge, *laddr)
+	var opts []ssdp.Option
+	if *ttl > 0 {
+		opts = append(opts, ssdp.TTL(*ttl))
+	}
+	if *sysIf {
+		opts = append(opts, ssdp.OnlySystemInterface())
+	}
+
+	err := ssdp.AnnounceAlive(*nt, *usn, *loc, *srv, *maxAge, *laddr, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}
