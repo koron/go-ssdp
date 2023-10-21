@@ -21,7 +21,7 @@ type Conn struct {
 }
 
 type connConfig struct {
-	ttl int
+	ttl   int
 	sysIf bool
 }
 
