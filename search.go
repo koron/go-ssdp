@@ -75,7 +75,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 		return nil, err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(multicast.NewResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ func AnnounceAlive(nt, usn string, location interface{}, server string, maxAge i
 		return err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(multicast.NewResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func AnnounceBye(nt, usn, localAddr string, opts ...Option) error {
 		return err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(multicast.NewResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return err
 	}
