@@ -174,6 +174,9 @@ func (mc *Conn) LocalAddr() net.Addr {
 	return mc.laddr
 }
 
+// PacketHandler is handler function to handle packet data which is called back by ReadPackets.
+type PacketHandler func(net.Addr, []byte) error
+
 // ReadPackets reads multicast packets.
 func (mc *Conn) ReadPackets(timeout time.Duration, h PacketHandler) error {
 	buf := make([]byte, 65535)

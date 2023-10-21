@@ -71,8 +71,7 @@ func (of optionFunc) apply(c *config) error {
 
 // LocalAddr return as Option that specify local address.
 // This option works with Advertize() and Monitor only.
-// Default "224.0.0.1:1900" will be used for Advertize() and Monitor()
-// when omitted the option.
+// Default "224.0.0.1:1900" will be used when omitted the option.
 func LocalAddr(laddr string) Option {
 	return optionFunc(func(c *config) error {
 		c.udpConfig.laddr = laddr
@@ -82,7 +81,7 @@ func LocalAddr(laddr string) Option {
 
 // RemoteAddr return as Option that specify remote address.
 // Default "239.255.255.250:1900" will be used when omitted the option.
-func RemoteAddress(raddr string) Option {
+func RemoteAddr(raddr string) Option {
 	return optionFunc(func(c *config) error {
 		c.udpConfig.raddr = raddr
 		return nil
