@@ -28,14 +28,16 @@ func main() {
 	if *v {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
+
+	var opts []ssdp.Option
 	if *ttl > 0 {
-		ssdp.SetMulticastTTL(*ttl)
+		opts = append(opts, ssdp.TTL(*ttl))
 	}
 	if *sysIf {
-		ssdp.SetMulticastSystemAssignedInterface(true)
+		opts = append(opts, ssdp.OnlySystemInterface())
 	}
 
-	err := ssdp.AnnounceAlive(*nt, *usn, *loc, *srv, *maxAge, *laddr)
+	err := ssdp.AnnounceAlive(*nt, *usn, *loc, *srv, *maxAge, *laddr, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}

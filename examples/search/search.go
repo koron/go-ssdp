@@ -25,13 +25,16 @@ func main() {
 	if *v {
 		ssdp.Logger = log.New(os.Stderr, "[SSDP] ", log.LstdFlags)
 	}
+
+	var opts []ssdp.Option
 	if *ttl > 0 {
-		ssdp.SetMulticastTTL(*ttl)
+		opts = append(opts, ssdp.TTL(*ttl))
 	}
 	if *sysIf {
-		ssdp.SetMulticastSystemAssignedInterface(true)
+		opts = append(opts, ssdp.OnlySystemInterface())
 	}
-	list, err := ssdp.Search(*t, *w, *l)
+
+	list, err := ssdp.Search(*t, *w, *l, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}

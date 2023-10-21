@@ -39,12 +39,16 @@ type Advertiser struct {
 
 // Advertise starts advertisement of service.
 // location should be a string or a ssdp.LocationProvider.
-func Advertise(st, usn string, location interface{}, server string, maxAge int, opts ...AdvertiserOption) (*Advertiser, error) {
+func Advertise(st, usn string, location interface{}, server string, maxAge int, opts ...Option) (*Advertiser, error) {
 	locProv, err := toLocationProvider(location)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := multicast.Listen(multicast.RecvAddrResolver, defaultConnOpts()...)
+	cfg, err := opts2config(opts)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := multicast.Listen(multicast.RecvAddrResolver, cfg.multicastConfig.options()...)
 	if err != nil {
 		return nil, err
 	}
@@ -57,9 +61,7 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int, 
 		maxAge:  maxAge,
 		conn:    conn,
 		ch:      make(chan *message),
-	}
-	for _, o := range opts {
-		o.apply(a)
+		addHost: cfg.advertiseConfig.addHost,
 	}
 	a.wg.Add(2)
 	a.wgS.Add(1)
@@ -201,24 +203,4 @@ func (a *Advertiser) Bye() error {
 	a.ch <- &message{to: addr, data: multicast.BytesDataProvider(msg)}
 	ssdplog.Printf("sent bye")
 	return nil
-}
-
-// AdvertiserOption configures for specific behavior of Advertiser.
-type AdvertiserOption interface {
-	apply(*Advertiser)
-}
-
-type advertiserOptionFunc func(*Advertiser)
-
-func (af advertiserOptionFunc) apply(a *Advertiser) {
-	af(a)
-}
-
-// AdvertiserOptionAddHost returns as AdvertiserOption that add HOST header
-// response for M-SEARCH request.  This is added to support SmartThings.
-// See https://github.com/koron/go-ssdp/issues/30 for details.
-func AdvertiserOptionAddHost() AdvertiserOption {
-	return advertiserOptionFunc(func(a *Advertiser) {
-		a.addHost = true
-	})
 }
