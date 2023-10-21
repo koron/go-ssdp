@@ -25,18 +25,24 @@ type udpConfig struct {
 	raddr string
 }
 
+// laddrResolver is a local address resolver for SSDP's multicast.
+var laddrResolver = multicast.NewResolver("224.0.0.1:1900")
+
 func (uc udpConfig) laddrResolver() multicast.Resolver {
 	if uc.laddr == "" {
-		return multicast.LocalAddrResolver
+		return laddrResolver
 	}
-	return multicast.AddressResolver(uc.laddr)
+	return multicast.NewResolver(uc.laddr)
 }
+
+// raddrResolver is a remote address resolver for SSDP's multicast.
+var raddrResolver = multicast.NewResolver("239.255.255.250:1900")
 
 func (uc udpConfig) raddrResolver() multicast.Resolver {
 	if uc.raddr == "" {
-		return multicast.RemoteAddrResolver
+		return raddrResolver
 	}
-	return multicast.AddressResolver(uc.raddr)
+	return multicast.NewResolver(uc.raddr)
 }
 
 type multicastConfig struct {

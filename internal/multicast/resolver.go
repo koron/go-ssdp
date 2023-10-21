@@ -17,10 +17,6 @@ type addrResolver struct {
 	err  error
 }
 
-func newAddrResolver(addr string) *addrResolver {
-	return &addrResolver{addr: addr}
-}
-
 func (ar *addrResolver) Resolve() (*net.UDPAddr, error) {
 	ar.once.Do(func() {
 		ar.udp, ar.err = net.ResolveUDPAddr("udp4", ar.addr)
@@ -28,13 +24,7 @@ func (ar *addrResolver) Resolve() (*net.UDPAddr, error) {
 	return ar.udp, ar.err
 }
 
-// LocalAddrResolver is a local address resolver for multicast UDP
-var LocalAddrResolver Resolver = newAddrResolver("224.0.0.1:1900")
-
-// RemoteAddrResolver is a remote address resolver for multicast UDP
-var RemoteAddrResolver Resolver = newAddrResolver("239.255.255.250:1900")
-
-// AddressResolver creates a resolver from string.
-func AddressResolver(addr string) Resolver {
-	return newAddrResolver(addr)
+// NewResolver creates a resolver from string.
+func NewResolver(addr string) Resolver {
+	return &addrResolver{addr: addr}
 }
