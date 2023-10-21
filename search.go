@@ -75,7 +75,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 		return nil, err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicast.Listen(&multicast.AddrResolver{Addr: localAddr}, cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(multicast.AddressResolver(localAddr), cfg.multicastConfig.options()...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 	ssdplog.Printf("search on %s", conn.LocalAddr().String())
 
 	// send request.
-	addr, err := multicast.SendAddr()
+	addr, err := cfg.raddrResolver().Resolve()
 	if err != nil {
 		return nil, err
 	}

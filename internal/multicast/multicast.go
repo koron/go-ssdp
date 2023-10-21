@@ -26,9 +26,9 @@ type connConfig struct {
 }
 
 // Listen starts to receiving multicast messages.
-func Listen(r *AddrResolver, opts ...ConnOption) (*Conn, error) {
+func Listen(localResolver Resolver, opts ...ConnOption) (*Conn, error) {
 	// prepare parameters.
-	laddr, err := r.resolve()
+	laddr, err := localResolver.Resolve()
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,8 @@ func newIPv4MulticastConn(conn *net.UDPConn, sysIf bool) (*ipv4.PacketConn, []*n
 			ifplist = append(ifplist, &list[i])
 		}
 	}
-	addr, err := SendAddr()
+	// TODO: make raddr/gaddr configurable
+	addr, err := RemoteAddrResolver.Resolve()
 	if err != nil {
 		return nil, nil, err
 	}
