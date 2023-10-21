@@ -108,13 +108,13 @@ func joinGroupIPv4(conn *net.UDPConn, ifplist []*net.Interface, gaddr net.Addr) 
 
 	// add interfaces to multicast group.
 	joined := 0
-	for _, ifp := range ifplist {
-		if err := wrap.JoinGroup(ifp, gaddr); err != nil {
-			ssdplog.Printf("failed to join group %s on %s: %s", gaddr.String(), ifp.Name, err)
+	for _, ifi := range ifplist {
+		if err := wrap.JoinGroup(ifi, gaddr); err != nil {
+			ssdplog.Printf("failed to join group %s on %s: %s", gaddr.String(), ifi.Name, err)
 			continue
 		}
 		joined++
-		ssdplog.Printf("joined group %s on %s (#%d)", gaddr.String(), ifp.Name, ifp.Index)
+		ssdplog.Printf("joined group %s on %s (#%d)", gaddr.String(), ifi.Name, ifi.Index)
 	}
 	if joined == 0 {
 		return nil, errors.New("no interfaces had joined to group")
@@ -150,8 +150,9 @@ func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
 	}
 	// Send a multicast message to all interfaces (iflist).
 	sum := 0
-	for _, ifp := range mc.ifps {
-		n, err := mc.writeToIfi(dataProv, to, ifp)
+	for _, ifi := range mc.ifps {
+		ssdplog.Printf("WriteTo: ifi=%+v", ifi)
+		n, err := mc.writeToIfi(dataProv, to, ifi)
 		if err != nil {
 			return 0, err
 		}
