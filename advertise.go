@@ -133,12 +133,12 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 		}
 		host = addr.String()
 	}
-	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge, host)
+	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, host, a.maxAge)
 	a.ch <- &message{to: from, data: multicast.BytesDataProvider(msg)}
 	return nil
 }
 
-func buildOK(st, usn, location, server string, maxAge int, host string) []byte {
+func buildOK(st, usn, location, server, host string, maxAge int) []byte {
 	// bytes.Buffer#Write() is never fail, so we can omit error checks.
 	b := new(bytes.Buffer)
 	b.WriteString("HTTP/1.1 200 OK\r\n")
@@ -151,10 +151,10 @@ func buildOK(st, usn, location, server string, maxAge int, host string) []byte {
 	if server != "" {
 		fmt.Fprintf(b, "SERVER: %s\r\n", server)
 	}
-	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
 	if host != "" {
 		fmt.Fprintf(b, "HOST: %s\r\n", host)
 	}
+	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
 	b.WriteString("\r\n")
 	return b.Bytes()
 }
