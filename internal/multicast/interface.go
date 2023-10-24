@@ -8,6 +8,9 @@ type InterfacesProviderFunc func() []net.Interface
 
 // InterfacesProvider specify a function to list all interfaces to multicast.
 // If no provider are given, all possible interfaces will be used.
+//
+// Deprecated: this setting item is not good because it affects globaly.
+// Use ConnInterfaces() option for each function call, instead of.
 var InterfacesProvider InterfacesProviderFunc
 
 // SystemAssignedInterface indicates use the system assigned multicast interface or not.

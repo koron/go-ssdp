@@ -16,6 +16,7 @@ func main() {
 	flag.StringVar(&filterType, "filter_type", "", "print only a specified type (ST or NT). default is print all types.")
 	ttl := flag.Int("ttl", 0, "TTL for outgoing multicast packets")
 	sysIf := flag.Bool("sysif", false, "use system assigned multicast interface")
+	laddr := flag.String("laddr", "", "local address to listen")
 	flag.Parse()
 
 	if *h {
@@ -32,6 +33,9 @@ func main() {
 	}
 	if *sysIf {
 		opts = append(opts, ssdp.OnlySystemInterface())
+	}
+	if *laddr != "" {
+		opts = append(opts, ssdp.LocalAddr(*laddr))
 	}
 
 	m := &ssdp.Monitor{
