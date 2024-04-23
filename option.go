@@ -1,8 +1,11 @@
 package ssdp
 
-import "github.com/koron/go-ssdp/internal/multicast"
+import (
+	"github.com/koron/go-ssdp/internal/multicast"
+)
 
 type config struct {
+	udpConfig
 	multicastConfig
 	advertiseConfig
 }
@@ -15,6 +18,31 @@ func opts2config(opts []Option) (cfg config, err error) {
 		}
 	}
 	return cfg, nil
+}
+
+type udpConfig struct {
+	laddr string
+	raddr string
+}
+
+// laddrResolver is a local address resolver for SSDP's multicast.
+var laddrResolver = multicast.NewResolver("224.0.0.1:1900")
+
+func (uc udpConfig) laddrResolver() multicast.Resolver {
+	if uc.laddr == "" {
+		return laddrResolver
+	}
+	return multicast.NewResolver(uc.laddr)
+}
+
+// raddrResolver is a remote address resolver for SSDP's multicast.
+var raddrResolver = multicast.NewResolver("239.255.255.250:1900")
+
+func (uc udpConfig) raddrResolver() multicast.Resolver {
+	if uc.raddr == "" {
+		return raddrResolver
+	}
+	return multicast.NewResolver(uc.raddr)
 }
 
 type multicastConfig struct {
@@ -47,10 +75,29 @@ func (of optionFunc) apply(c *config) error {
 	return of(c)
 }
 
+// LocalAddr return as Option that specify local address.
+// This option works with Advertize() and Monitor only.
+// Default "224.0.0.1:1900" will be used when omitted the option.
+func LocalAddr(laddr string) Option {
+	return optionFunc(func(c *config) error {
+		c.udpConfig.laddr = laddr
+		return nil
+	})
+}
+
+// RemoteAddr return as Option that specify remote address.
+// Default "239.255.255.250:1900" will be used when omitted the option.
+func RemoteAddr(raddr string) Option {
+	return optionFunc(func(c *config) error {
+		c.udpConfig.raddr = raddr
+		return nil
+	})
+}
+
 // TTL returns as Option that set TTL for multicast packets.
 func TTL(ttl int) Option {
 	return optionFunc(func(c *config) error {
-		c.ttl = ttl
+		c.multicastConfig.ttl = ttl
 		return nil
 	})
 }
@@ -59,7 +106,7 @@ func TTL(ttl int) Option {
 // multicast interface.
 func OnlySystemInterface() Option {
 	return optionFunc(func(c *config) error {
-		c.sysIf = true
+		c.multicastConfig.sysIf = true
 		return nil
 	})
 }
@@ -71,7 +118,7 @@ func OnlySystemInterface() Option {
 // See https://github.com/koron/go-ssdp/issues/30 for details.
 func AdvertiseHost() Option {
 	return optionFunc(func(c *config) error {
-		c.addHost = true
+		c.advertiseConfig.addHost = true
 		return nil
 	})
 }

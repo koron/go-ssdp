@@ -5,6 +5,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func testMaxAge(t *testing.T, s string, expect int) {
@@ -225,6 +228,38 @@ func TestSearch_AdvetiserWithHost(t *testing.T) {
 			} else if act := h.Get(k); act != exp {
 				t.Errorf("header #%d %q value mismatch:\nwant=%q\n got=%q", i, k, exp, act)
 			}
+		}
+	}
+}
+
+func TestParseServiceErrors(t *testing.T) {
+	for i, c := range []struct {
+		data []byte
+		srv  *Service
+		err  string
+	}{
+		{[]byte(""), nil, "without HTTP prefix"},
+		{
+			[]byte("HTTP/1.1 200 OK\r\n"),
+			&Service{},
+			"",
+		},
+		{
+			buildOK("st", "usn", "loc", "srv", "host", 999),
+			&Service{Type: "st", USN: "usn", Location: "loc", Server: "srv"},
+			"",
+		},
+	} {
+		gotSrv, err := parseService(c.data)
+		if d := cmp.Diff(c.srv, gotSrv, cmpopts.IgnoreFields(Service{}, "rawHeader", "maxAge")); d != "" {
+			t.Errorf("service unmatch #%d: -want +got\n%s", i, d)
+		}
+		var errMsg string
+		if err != nil {
+			errMsg = err.Error()
+		}
+		if d := cmp.Diff(c.err, errMsg); d != "" {
+			t.Errorf("error unmatch: #%d: -want +got\n%s", i, d)
 		}
 	}
 }

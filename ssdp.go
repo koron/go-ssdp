@@ -23,15 +23,3 @@ var Interfaces []net.Interface
 
 // Logger is default logger for SSDP module.
 var Logger *log.Logger
-
-// SetMulticastRecvAddrIPv4 updates multicast address where to receive packets.
-// This never fail now.
-func SetMulticastRecvAddrIPv4(addr string) error {
-	return multicast.SetRecvAddrIPv4(addr)
-}
-
-// SetMulticastSendAddrIPv4 updates a UDP address to send multicast packets.
-// This never fail now.
-func SetMulticastSendAddrIPv4(addr string) error {
-	return multicast.SetSendAddrIPv4(addr)
-}

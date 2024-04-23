@@ -35,6 +35,8 @@ type Advertiser struct {
 	// It is to support SmartThings.
 	// See https://github.com/koron/go-ssdp/issues/30 for details
 	addHost bool
+
+	raddrResolver multicast.Resolver
 }
 
 // Advertise starts advertisement of service.
@@ -48,20 +50,21 @@ func Advertise(st, usn string, location interface{}, server string, maxAge int, 
 	if err != nil {
 		return nil, err
 	}
-	conn, err := multicast.Listen(multicast.RecvAddrResolver, cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(cfg.laddrResolver(), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return nil, err
 	}
 	ssdplog.Printf("SSDP advertise on: %s", conn.LocalAddr().String())
 	a := &Advertiser{
-		st:      st,
-		usn:     usn,
-		locProv: locProv,
-		server:  server,
-		maxAge:  maxAge,
-		conn:    conn,
-		ch:      make(chan *message),
-		addHost: cfg.advertiseConfig.addHost,
+		st:            st,
+		usn:           usn,
+		locProv:       locProv,
+		server:        server,
+		maxAge:        maxAge,
+		conn:          conn,
+		ch:            make(chan *message),
+		addHost:       cfg.advertiseConfig.addHost,
+		raddrResolver: cfg.raddrResolver(),
 	}
 	a.wg.Add(2)
 	a.wgS.Add(1)
@@ -124,18 +127,18 @@ func (a *Advertiser) handleRaw(from net.Addr, raw []byte) error {
 	// build and send a response.
 	var host string
 	if a.addHost {
-		addr, err := multicast.SendAddr()
+		addr, err := a.raddrResolver.Resolve()
 		if err != nil {
 			return err
 		}
 		host = addr.String()
 	}
-	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, a.maxAge, host)
+	msg := buildOK(a.st, a.usn, a.locProv.Location(from, nil), a.server, host, a.maxAge)
 	a.ch <- &message{to: from, data: multicast.BytesDataProvider(msg)}
 	return nil
 }
 
-func buildOK(st, usn, location, server string, maxAge int, host string) []byte {
+func buildOK(st, usn, location, server, host string, maxAge int) []byte {
 	// bytes.Buffer#Write() is never fail, so we can omit error checks.
 	b := new(bytes.Buffer)
 	b.WriteString("HTTP/1.1 200 OK\r\n")
@@ -148,10 +151,10 @@ func buildOK(st, usn, location, server string, maxAge int, host string) []byte {
 	if server != "" {
 		fmt.Fprintf(b, "SERVER: %s\r\n", server)
 	}
-	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
 	if host != "" {
 		fmt.Fprintf(b, "HOST: %s\r\n", host)
 	}
+	fmt.Fprintf(b, "CACHE-CONTROL: max-age=%d\r\n", maxAge)
 	b.WriteString("\r\n")
 	return b.Bytes()
 }
@@ -173,7 +176,7 @@ func (a *Advertiser) Close() error {
 
 // Alive announces ssdp:alive message.
 func (a *Advertiser) Alive() error {
-	addr, err := multicast.SendAddr()
+	addr, err := a.raddrResolver.Resolve()
 	if err != nil {
 		return err
 	}
@@ -192,7 +195,7 @@ func (a *Advertiser) Alive() error {
 
 // Bye announces ssdp:byebye message.
 func (a *Advertiser) Bye() error {
-	addr, err := multicast.SendAddr()
+	addr, err := a.raddrResolver.Resolve()
 	if err != nil {
 		return err
 	}

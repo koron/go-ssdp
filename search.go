@@ -75,7 +75,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 		return nil, err
 	}
 	// dial multicast UDP packet.
-	conn, err := multicast.Listen(&multicast.AddrResolver{Addr: localAddr}, cfg.multicastConfig.options()...)
+	conn, err := multicast.Listen(multicast.NewResolver(localAddr), cfg.raddrResolver(), cfg.multicastConfig.options()...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 	ssdplog.Printf("search on %s", conn.LocalAddr().String())
 
 	// send request.
-	addr, err := multicast.SendAddr()
+	addr, err := cfg.raddrResolver().Resolve()
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 	// wait response.
 	var list []Service
 	h := func(a net.Addr, d []byte) error {
-		srv, err := parseService(a, d)
+		srv, err := parseService(d)
 		if err != nil {
 			ssdplog.Printf("invalid search response from %s: %s", a.String(), err)
 			return nil
@@ -133,7 +133,7 @@ var (
 
 var endOfHeader = []byte{'\r', '\n', '\r', '\n'}
 
-func parseService(addr net.Addr, data []byte) (*Service, error) {
+func parseService(data []byte) (*Service, error) {
 	if !bytes.HasPrefix(data, []byte("HTTP")) {
 		return nil, errWithoutHTTPPrefix
 	}
