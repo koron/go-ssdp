@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/koron/go-ssdp/internal/multicast"
@@ -113,6 +114,96 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 	}
 
 	return list, err
+}
+
+// SearchUntil searches services by SSDP until it collects n responses or times out.
+// It returns on whichever happens first: collecting n responses or waiting for waitSec seconds.
+func SearchUntil(searchType string, waitSec int, localAddr string, n int, opts ...Option) ([]Service, error) {
+	if n <= 0 {
+		return nil, errors.New("n must be greater than 0")
+	}
+
+	cfg, err := opts2config(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// dial multicast UDP packet.
+	conn, err := multicast.Listen(&multicast.AddrResolver{Addr: localAddr}, cfg.multicastConfig.options()...)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	ssdplog.Printf("search on %s", conn.LocalAddr().String())
+
+	// send request.
+	addr, err := multicast.SendAddr()
+	if err != nil {
+		return nil, err
+	}
+	msg, err := buildSearch(addr, searchType, waitSec)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := conn.WriteTo(multicast.BytesDataProvider(msg), addr); err != nil {
+		return nil, err
+	}
+
+	// wait response with a limit on the number of responses.
+	var (
+		list    []Service
+		mu      sync.Mutex
+		wg      sync.WaitGroup
+		timeout = time.After(time.Second * time.Duration(waitSec))
+		done    = make(chan struct{})
+	)
+
+	// Start a goroutine to collect responses
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer close(done)
+
+		h := func(a net.Addr, d []byte) error {
+			srv, err := parseService(a, d)
+			if err != nil {
+				ssdplog.Printf("invalid search response from %s: %s", a.String(), err)
+				return nil
+			}
+
+			mu.Lock()
+			list = append(list, *srv)
+			currentCount := len(list)
+			mu.Unlock()
+
+			ssdplog.Printf("search response from %s: %s", a.String(), srv.USN)
+
+			// If we've collected enough responses, signal to stop
+			if currentCount >= n {
+				return errors.New("sufficient responses collected")
+			}
+			return nil
+		}
+
+		// ReadPackets will continue until timeout or error
+		if err := conn.ReadPackets(time.Second*time.Duration(waitSec), h); err != nil &&
+			err.Error() != "sufficient responses collected" {
+			ssdplog.Printf("read packets error: %s", err)
+		}
+	}()
+
+	// Wait for either the collection to complete or timeout
+	select {
+	case <-done:
+		// Collection completed either by reaching n responses or by error
+	case <-timeout:
+		// Maximum wait time reached
+	}
+
+	// Ensure the goroutine completes
+	wg.Wait()
+
+	return list, nil
 }
 
 func buildSearch(raddr net.Addr, searchType string, waitSec int) ([]byte, error) {
