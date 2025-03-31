@@ -11,7 +11,7 @@ import (
 
 func main() {
 	t := flag.String("t", ssdp.All, "search type")
-	w := flag.Int("w", 1, "wait time")
+	w := flag.Uint("w", 1, "wait time")
 	l := flag.String("l", "", "local address to listen")
 	ttl := flag.Int("ttl", 0, "TTL for outgoing multicast packets")
 	sysIf := flag.Bool("sysif", false, "use system assigned multicast interface")

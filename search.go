@@ -15,6 +15,9 @@ import (
 	"github.com/koron/go-ssdp/internal/ssdplog"
 )
 
+// Seconds corresponds to a number of seconds.
+type Seconds = uint
+
 // Service is discovered service.
 type Service struct {
 	// Type is a property of "ST"
@@ -68,7 +71,7 @@ const (
 )
 
 // Search searches services by SSDP.
-func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([]Service, error) {
+func Search(searchType string, wait Seconds, localAddr string, opts ...Option) ([]Service, error) {
 	cfg, err := opts2config(opts)
 	if err != nil {
 		return nil, err
@@ -86,7 +89,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 	if err != nil {
 		return nil, err
 	}
-	msg, err := buildSearch(addr, searchType, waitSec)
+	msg, err := buildSearch(addr, searchType, wait)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +109,7 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 		ssdplog.Printf("search response from %s: %s", a.String(), srv.USN)
 		return nil
 	}
-	d := time.Second * time.Duration(waitSec)
+	d := time.Second * time.Duration(wait)
 	if err := conn.ReadPackets(d, h); err != nil {
 		return nil, err
 	}
@@ -114,13 +117,13 @@ func Search(searchType string, waitSec int, localAddr string, opts ...Option) ([
 	return list, err
 }
 
-func buildSearch(raddr net.Addr, searchType string, waitSec int) ([]byte, error) {
+func buildSearch(raddr net.Addr, searchType string, wait Seconds) ([]byte, error) {
 	b := new(bytes.Buffer)
 	// FIXME: error should be checked.
 	b.WriteString("M-SEARCH * HTTP/1.1\r\n")
 	fmt.Fprintf(b, "HOST: %s\r\n", raddr.String())
 	fmt.Fprintf(b, "MAN: %q\r\n", "ssdp:discover")
-	fmt.Fprintf(b, "MX: %d\r\n", waitSec)
+	fmt.Fprintf(b, "MX: %d\r\n", wait)
 	fmt.Fprintf(b, "ST: %s\r\n", searchType)
 	b.WriteString("\r\n")
 	return b.Bytes(), nil
