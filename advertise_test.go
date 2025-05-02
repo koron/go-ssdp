@@ -34,6 +34,9 @@ func TestAdvertise_Alive(t *testing.T) {
 	a.Close()
 	time.Sleep(500 * time.Millisecond)
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	if len(mm) < 1 {
 		t.Fatal("no alives detected")
 	}
@@ -109,6 +112,9 @@ func TestAdvertise_Bye(t *testing.T) {
 	}
 	a.Close()
 	time.Sleep(500 * time.Millisecond)
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	if len(mm) < 1 {
 		t.Fatal("no byes detected")
