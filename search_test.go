@@ -58,6 +58,9 @@ func TestSearch_Request(t *testing.T) {
 		t.Errorf("unexpected services: %+v", srvs)
 	}
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	if len(mm) < 1 {
 		t.Fatal("no search detected")
 	}

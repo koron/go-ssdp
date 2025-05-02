@@ -28,6 +28,9 @@ func TestAnnounceAlive(t *testing.T) {
 	}
 	time.Sleep(500 * time.Millisecond)
 
+	mu.Lock()
+	defer mu.Unlock()
+
 	if len(mm) < 1 {
 		t.Fatal("no alives detected")
 	}
@@ -75,6 +78,9 @@ func TestAnnounceBye(t *testing.T) {
 		t.Fatalf("failed to announce bye: %s", err)
 	}
 	time.Sleep(500 * time.Millisecond)
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	if len(mm) < 1 {
 		t.Fatal("no byes detected")
