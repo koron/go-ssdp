@@ -172,8 +172,8 @@ func (m *AliveMessage) Header() http.Header {
 // MaxAge extracts "max-age" value from "CACHE-CONTROL" property.
 func (m *AliveMessage) MaxAge() int {
 	if m.maxAge == nil {
-		maxAge := extractMaxAge(m.rawHeader.Get("CACHE-CONTROL"), -1)
-		m.maxAge = &maxAge
+		m.maxAge = new(int)
+		*m.maxAge = extractMaxAge(m.rawHeader.Get("CACHE-CONTROL"), -1)
 	}
 	return *m.maxAge
 }

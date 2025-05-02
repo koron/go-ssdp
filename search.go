@@ -48,8 +48,8 @@ func extractMaxAge(s string, value int) int {
 // MaxAge extracts "max-age" value from "CACHE-CONTROL" property.
 func (s *Service) MaxAge() int {
 	if s.maxAge == nil {
-		maxAge := extractMaxAge(s.rawHeader.Get("CACHE-CONTROL"), -1)
-		s.maxAge = &maxAge
+		s.maxAge = new(int)
+		*s.maxAge = extractMaxAge(s.rawHeader.Get("CACHE-CONTROL"), -1)
 	}
 	return *s.maxAge
 }
