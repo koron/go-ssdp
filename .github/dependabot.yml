@@ -9,3 +9,5 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+
+# $Hash:c5d3212bc9191230f44684f4d30f030b6c70d515e68cbc9c3467c4d9$

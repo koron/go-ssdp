@@ -1,12 +1,19 @@
-EXAMPLES = advertise alive bye monitor search
+# Get relative paths of all "main" packages
+MAIN_PACKAGE ?= $(shell go list -f '{{if (eq .Name "main")}}.{{slice .ImportPath (len .Module.Path)}}{{end}}' ./...)
+
+TEST_PACKAGE ?= ./...
 
 .PHONY: build
 build:
-	go build -gcflags '-e'
+	go build -gcflags '-e' ./...
 
 .PHONY: test
 test:
 	go test $(TEST_PACKAGE)
+
+.PHONY: race
+race:
+	go test -race $(TEST_PACKAGE)
 
 .PHONY: bench
 bench:
@@ -34,38 +41,29 @@ staticcheck:
 	staticcheck $(TEST_PACKAGE)
 
 .PHONY: clean
-clean: examples-clean
+clean:
 	go clean
 	rm -f tags
 	rm -f tmp/_cover.out tmp/cover.html
 
+list-upgradable-modules:
+	@go list -m -u -f '{{if .Update}}{{.Path}} {{.Version}} [{{.Update.Version}}]{{end}}' all
+
+# Build all "main" packages
+.PHONY: main-build
+main-build:
+	@for d in $(MAIN_PACKAGE) ; do \
+	  echo "cd $$d && go build -gcflags '-e'" ; \
+	  ( cd $$d && go build -gcflags '-e' ) ; \
+	done
+
+# Clean all "main" packages
+.PHONY: main-clean
+main-clean:
+	@for d in $(MAIN_PACKAGE) ; do \
+	  echo "cd $$d && go clean" ; \
+	  ( cd $$d && go clean ) ; \
+	done
+
 # based on: github.com/koron-go/_skeleton/Makefile
-
-.PHONY: test-race
-test-race:
-	go test -race .
-
-.PHONY: examples
-examples: examples-build
-
-.PHONY: examples-build
-examples-build: $(EXAMPLES)
-
-.PHONY: examples-clean
-examples-clean:
-	rm -f $(EXAMPLES)
-
-advertise: examples/advertise/*.go *.go
-	go build ./examples/advertise
-
-alive: examples/alive/*.go *.go
-	go build ./examples/alive
-
-bye: examples/bye/*.go *.go
-	go build ./examples/bye
-
-monitor: examples/monitor/*.go *.go
-	go build ./examples/monitor
-
-search: examples/search/*.go *.go
-	go build ./examples/search
+# $Hash:46e18120a853c06f4546e24b5c4ba7e823abefe1f601db9b2dc289f5$
