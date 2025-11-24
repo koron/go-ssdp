@@ -19,7 +19,7 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
@@ -29,14 +29,15 @@ jobs:
       run: |
         found=0
         echo "targets<<__END__" >> $GITHUB_OUTPUT
-        root=$(go list -f '{{.ImportPath}}' .)
-        for path in $(go list -f '{{if (eq .Name "main")}}{{.ImportPath}}{{end}}' ./... ) ; do
-          found=1
-          dir=".${path#${root}}"
-          name=$(basename "$path")
+        go list -f '{{if (eq .Name "main")}}{{.ImportPath}} .{{slice .ImportPath (len .Module.Path)}}{{end}}' ./... | while IFS= read -r line ; do
+          read -a e <<< "$line"
+          path="${e[0]}"
+          dir="${e[1]}"
+          name=$(basename $path)
           if [ -f "$dir/.norelease" ] ; then
             echo -e "Skipped $name\t($dir), due to $dir/.norelease found"
           else
+            found=1
             echo "$name $dir $path" >> $GITHUB_OUTPUT
             echo -e "Added   $name\t($dir) to the release"
           fi
@@ -56,6 +57,7 @@ jobs:
       RELEASE_TARGETS: ${{needs.check.outputs.targets}}
 
     strategy:
+      fail-fast: false
       matrix:
         os:
         - ubuntu-latest
@@ -77,7 +79,7 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
@@ -148,7 +150,7 @@ jobs:
         ls -laFR _build
 
     - name: Artifact upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ env.GOOS }}_${{ env.GOARCH }}
         path: _build/${{ env.PKGNAME }}${{ env.PKGEXT }}
@@ -160,19 +162,19 @@ jobs:
     needs:
     - build
     steps:
-    - uses: actions/download-artifact@v5
+    - uses: actions/download-artifact@v6
       with: { name: darwin_amd64 }
-    - uses: actions/download-artifact@v5
+    - uses: actions/download-artifact@v6
       with: { name: darwin_arm64 }
-    - uses: actions/download-artifact@v5
+    - uses: actions/download-artifact@v6
       with: { name: linux_amd64 }
-    - uses: actions/download-artifact@v5
+    - uses: actions/download-artifact@v6
       with: { name: linux_arm64 }
-    - uses: actions/download-artifact@v5
+    - uses: actions/download-artifact@v6
       with: { name: windows_amd64 }
     - run: ls -lafR
     - name: Release
-      uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
+      uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
       with:
         draft: true
         prerelease: ${{ contains(github.ref_name, '-alpha.') || contains(github.ref_name, '-beta.') }}
@@ -184,4 +186,4 @@ jobs:
         append_body: true
 
 # based on: github.com/koron-go/_skeleton/.github/workflows/release.yml
-# $Hash:d99d1b5435452a2fc3ff949711abe87b69e047855802ec59910d7132$
+# $Hash:a9354833cf3f815f347887d0b11c95c61a362262f9715036ff827975$
