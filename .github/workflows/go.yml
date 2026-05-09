@@ -61,10 +61,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        # Some of tests are failed with macos-latest.
-        # See also: https://github.com/koron/go-ssdp/issues/42
-        #- { os: darwin,  arch: amd64, runner: macos-latest,     }
-        #- { os: darwin,  arch: arm64, runner: macos-latest,     }
+        - { os: darwin,  arch: amd64, runner: macos-latest,     }
+        - { os: darwin,  arch: arm64, runner: macos-latest,     }
         - { os: freebsd, arch: amd64, runner: ubuntu-latest,    }
         - { os: linux,   arch: arm64, runner: ubuntu-24.04-arm, }
         - { os: linux,   arch: amd64, runner: ubuntu-latest,    }
