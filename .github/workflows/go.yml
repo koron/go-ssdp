@@ -116,10 +116,17 @@ jobs:
     - name: Add multicast route
       if: matrix.os == 'darwin'
       run: |
-        #networksetup -listallhardwareports
-        sudo route delete 224.0.0.0/4
-        sudo route add -net 224.0.0.0/4 -interface en0
-        sudo route add -net 239.255.255.250 -interface en0
+        # find an active interface
+        interface=$(networksetup -listallhardwareports | grep -A1 "Wi-Fi\|Ethernet" | grep "Device:" | head -n1 | awk '{print $2}')
+        if [ -z "$interface" ]; then
+          interface=$(netstat -rn -f inet | grep '^default' | awk '{print $4}' | head -n1)
+        fi
+        if [ -z "$interface" ]; then
+          interface="en0"
+        fi
+        echo "Using interface: $interface"
+        sudo route -n add -net 224.0.0.0/4 -interface "$interface" || true
+        sudo route -n add -net 239.255.255.250 -interface "$interface" || true
 
     - name: Start FreeBSD VM
       if: matrix.os == 'freebsd'

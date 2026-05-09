@@ -146,14 +146,22 @@ func (mc *Conn) WriteTo(dataProv DataProvider, to net.Addr) (int, error) {
 		return mc.writeToIfi(dataProv, to, nil)
 	}
 	// Send a multicast message to all interfaces (iflist).
+	if len(mc.ifps) == 0 {
+		return mc.writeToIfi(dataProv, to, nil)
+	}
 	sum := 0
+	var lastErr error
 	for _, ifi := range mc.ifps {
-		ssdplog.Printf("WriteTo: ifi=%+v", ifi)
 		n, err := mc.writeToIfi(dataProv, to, ifi)
 		if err != nil {
-			return 0, err
+			ssdplog.Printf("failed to write to %s: %s", ifi.Name, err)
+			lastErr = err
+			continue
 		}
 		sum += n
+	}
+	if sum == 0 && lastErr != nil {
+		return 0, lastErr
 	}
 	return sum, nil
 }
