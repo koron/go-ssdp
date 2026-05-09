@@ -128,6 +128,12 @@ jobs:
           echo "::group::Install Go"
           pkg install -y go
 
+    - name: Setup multicast route (macOS)
+      if: matrix.os == 'darwin'
+      run: |
+        sudo route -n add -net 224.0.0.0/4 -interface en0 || true
+        sudo route -n add -net 239.255.255.250 -interface en0 || true
+
     - name: Test all
       run: |
         go test ./...
