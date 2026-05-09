@@ -71,3 +71,4 @@ main-clean:
 	done
 
 # based on: github.com/koron-go/_skeleton/Makefile
+# $Hash:93a5966a0297543bcdd82a4dd9c2d60232a1b02c49cfa0b4341fdb71$

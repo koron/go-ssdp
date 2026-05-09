@@ -116,17 +116,9 @@ jobs:
     - name: Add multicast route
       if: matrix.os == 'darwin'
       run: |
-        # find an active interface
-        interface=$(networksetup -listallhardwareports | grep -A1 "Wi-Fi\|Ethernet" | grep "Device:" | head -n1 | awk '{print $2}')
-        if [ -z "$interface" ]; then
-          interface=$(netstat -rn -f inet | grep '^default' | awk '{print $4}' | head -n1)
-        fi
-        if [ -z "$interface" ]; then
-          interface="en0"
-        fi
-        echo "Using interface: $interface"
-        sudo route -n add -net 224.0.0.0/4 -interface "$interface" || true
-        sudo route -n add -net 239.255.255.250 -interface "$interface" || true
+        #networksetup -listallhardwareports
+        sudo route -n add -net 224.0.0.0/4 -interface en0 || true
+        sudo route -n add -net 239.255.255.250 -interface en0 || true
 
     - name: Start FreeBSD VM
       if: matrix.os == 'freebsd'
@@ -220,3 +212,4 @@ jobs:
         append_body: true
 
 # based on: github.com/koron-go/_skeleton/.github/workflows/go.yml
+# $Hash:0551d7918d833e1b21aecf150dde95f178e6fb0198cfe222542daefa$
