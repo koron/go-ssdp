@@ -113,6 +113,14 @@ jobs:
         echo "PKGNAME=${NAME}_${VERSION}_${GOOS}_${GOARCH}" >> $GITHUB_ENV
         echo "PKGEXT=${PKGEXT}" >> $GITHUB_ENV
 
+    - name: Add multicast route
+      if: matrix.os == 'darwin'
+      run: |
+        #networksetup -listallhardwareports
+        sudo route delete 224.0.0.0/4
+        sudo route add -net 224.0.0.0/4 -interface en0
+        sudo route add -net 239.255.255.250 -interface en0
+
     - name: Start FreeBSD VM
       if: matrix.os == 'freebsd'
       uses: vmactions/freebsd-vm@d1e65811565151536c0c894fff74f06351ed26e6 # v1.4.5
