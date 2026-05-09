@@ -131,8 +131,17 @@ jobs:
     - name: Setup multicast route (macOS)
       if: matrix.os == 'darwin'
       run: |
-        sudo route -n add -net 224.0.0.0/4 -interface en0 || true
-        sudo route -n add -net 239.255.255.250 -interface en0 || true
+        sudo route -n add -net 224.0.0.0/4 -interface lo0 || true
+        sudo route -n add -net 239.255.255.250 -interface lo0 || true
+        IFNAME=$(networksetup -listallhardwareports | grep -A 1 "Wi-Fi" | grep "Device:" | awk '{print $2}')
+        if [ -z "$IFNAME" ]; then
+          IFNAME=$(networksetup -listallhardwareports | grep -A 1 "Ethernet" | grep "Device:" | awk '{print $2}')
+        fi
+        if [ -z "$IFNAME" ]; then
+          IFNAME=en0
+        fi
+        sudo route -n add -net 224.0.0.0/4 -interface $IFNAME || true
+        sudo route -n add -net 239.255.255.250 -interface $IFNAME || true
 
     - name: Test all
       run: |

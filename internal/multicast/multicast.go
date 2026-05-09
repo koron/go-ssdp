@@ -1,6 +1,7 @@
 package multicast
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
@@ -38,7 +39,7 @@ func Listen(r *AddrResolver, opts ...ConnOption) (*Conn, error) {
 		o.apply(&cfg)
 	}
 	// connect.
-	conn, err := net.ListenUDP("udp4", laddr)
+	conn, err := listenUDP(context.Background(), laddr)
 	if err != nil {
 		return nil, err
 	}
