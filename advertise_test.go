@@ -11,16 +11,11 @@ import (
 func TestAdvertise_Alive(t *testing.T) {
 	var mu sync.Mutex
 	var mm []*AliveMessage
-	m := newTestMonitor("test:advertise+alive", func(m *AliveMessage) {
+	m := newTestMonitor(t, "test:advertise+alive", func(m *AliveMessage) {
 		mu.Lock()
 		mm = append(mm, m)
 		mu.Unlock()
 	}, nil, nil)
-	err := m.Start()
-	if err != nil {
-		t.Fatalf("failed to start Monitor: %s", err)
-	}
-	defer m.Close()
 
 	a, err := Advertise("test:advertise+alive", "usn:advertise+alive", "location:advertise+alive", "server:advertise+alive", 600)
 	if err != nil {
@@ -31,11 +26,13 @@ func TestAdvertise_Alive(t *testing.T) {
 		a.Close()
 		t.Fatalf("failed to send alive: %s", err)
 	}
+
 	a.Close()
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(monitorWait)
+	m.Close()
 
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	if len(mm) < 1 {
 		t.Fatal("no alives detected")
@@ -90,16 +87,11 @@ func TestAdvertise_Alive(t *testing.T) {
 func TestAdvertise_Bye(t *testing.T) {
 	var mu sync.Mutex
 	var mm []*ByeMessage
-	m := newTestMonitor("test:advertise+bye", nil, func(m *ByeMessage) {
+	m := newTestMonitor(t, "test:advertise+bye", nil, func(m *ByeMessage) {
 		mu.Lock()
 		mm = append(mm, m)
 		mu.Unlock()
 	}, nil)
-	err := m.Start()
-	if err != nil {
-		t.Fatalf("failed to start Monitor: %s", err)
-	}
-	defer m.Close()
 
 	a, err := Advertise("test:advertise+bye", "usn:advertise+bye", "location:advertise+bye", "server:advertise+bye", 600)
 	if err != nil {
@@ -110,11 +102,13 @@ func TestAdvertise_Bye(t *testing.T) {
 		a.Close()
 		t.Fatalf("failed to send bye: %s", err)
 	}
+
 	a.Close()
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(monitorWait)
+	m.Close()
 
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	if len(mm) < 1 {
 		t.Fatal("no byes detected")

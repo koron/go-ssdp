@@ -11,25 +11,22 @@ import (
 func TestAnnounceAlive(t *testing.T) {
 	var mu sync.Mutex
 	var mm []*AliveMessage
-	m := newTestMonitor("test:announce+alive", func(m *AliveMessage) {
+	m := newTestMonitor(t, "test:announce+alive", func(m *AliveMessage) {
 		mu.Lock()
 		mm = append(mm, m)
 		mu.Unlock()
 	}, nil, nil)
-	err := m.Start()
-	if err != nil {
-		t.Fatalf("failed to start Monitor: %s", err)
-	}
-	defer m.Close()
 
-	err = AnnounceAlive("test:announce+alive", "usn:announce+alive", "location:announce+alive", "server:announce+alive", 600, "")
+	err := AnnounceAlive("test:announce+alive", "usn:announce+alive", "location:announce+alive", "server:announce+alive", 600, "")
 	if err != nil {
 		t.Fatalf("failed to announce alive: %s", err)
 	}
-	time.Sleep(500 * time.Millisecond)
+
+	time.Sleep(monitorWait)
+	m.Close()
 
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	if len(mm) < 1 {
 		t.Fatal("no alives detected")
@@ -62,25 +59,22 @@ func TestAnnounceAlive(t *testing.T) {
 func TestAnnounceBye(t *testing.T) {
 	var mu sync.Mutex
 	var mm []*ByeMessage
-	m := newTestMonitor("test:announce+bye", nil, func(m *ByeMessage) {
+	m := newTestMonitor(t, "test:announce+bye", nil, func(m *ByeMessage) {
 		mu.Lock()
 		mm = append(mm, m)
 		mu.Unlock()
 	}, nil)
-	err := m.Start()
-	if err != nil {
-		t.Fatalf("failed to start Monitor: %s", err)
-	}
-	defer m.Close()
 
-	err = AnnounceBye("test:announce+bye", "usn:announce+bye", "")
+	err := AnnounceBye("test:announce+bye", "usn:announce+bye", "")
 	if err != nil {
 		t.Fatalf("failed to announce bye: %s", err)
 	}
-	time.Sleep(500 * time.Millisecond)
+
+	time.Sleep(monitorWait)
+	m.Close()
 
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	if len(mm) < 1 {
 		t.Fatal("no byes detected")
