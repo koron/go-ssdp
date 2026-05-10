@@ -39,16 +39,11 @@ func TestSearch_Request(t *testing.T) {
 
 	var mu sync.Mutex
 	var mm []*SearchMessage
-	m := newTestMonitor(searchType, nil, nil, func(m *SearchMessage) {
+	m := newTestMonitor(t, searchType, nil, nil, func(m *SearchMessage) {
 		mu.Lock()
 		mm = append(mm, m)
 		mu.Unlock()
 	})
-	err := m.Start()
-	if err != nil {
-		t.Fatalf("failed to start Monitor: %s", err)
-	}
-	defer m.Close()
 
 	srvs, err := Search(searchType, 1, "")
 	if err != nil {
@@ -58,8 +53,10 @@ func TestSearch_Request(t *testing.T) {
 		t.Errorf("unexpected services: %+v", srvs)
 	}
 
+	m.Close()
+
 	mu.Lock()
-	defer mu.Unlock()
+	t.Cleanup(mu.Unlock)
 
 	if len(mm) < 1 {
 		t.Fatal("no search detected")
@@ -100,7 +97,9 @@ func TestSearch_Response(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to Advertise: %s", err)
 	}
-	defer a.Close()
+	t.Cleanup(func() {
+		a.Close()
+	})
 
 	srvs, err := Search("test:search+response", 1, "")
 	if err != nil {
@@ -132,7 +131,9 @@ func TestSearch_ServiceRawHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to Advertise: %s", err)
 	}
-	defer a.Close()
+	t.Cleanup(func() {
+		a.Close()
+	})
 
 	srvs, err := Search("test:search+servicerawheader", 1, "")
 	if err != nil {
@@ -184,7 +185,9 @@ func TestSearch_AdvetiserWithHost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to Advertise: %s", err)
 	}
-	defer a.Close()
+	t.Cleanup(func() {
+		a.Close()
+	})
 
 	srvs, err := Search("test:search+advertiserwithhost", 1, "")
 	if err != nil {

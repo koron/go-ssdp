@@ -1,6 +1,13 @@
 package ssdp
 
-func newTestMonitor(typ string, alive AliveHandler, bye ByeHandler, search SearchHandler) *Monitor {
+import (
+	"testing"
+	"time"
+)
+
+const monitorWait = 500 * time.Millisecond
+
+func newTestMonitor(t *testing.T, typ string, alive AliveHandler, bye ByeHandler, search SearchHandler) *Monitor {
 	m := &Monitor{}
 	if alive != nil {
 		m.Alive = func(am *AliveMessage) {
@@ -23,5 +30,12 @@ func newTestMonitor(typ string, alive AliveHandler, bye ByeHandler, search Searc
 			}
 		}
 	}
+	if err := m.Start(); err != nil {
+		t.Helper()
+		t.Fatalf("failed to start Monitor: %s", err)
+	}
+	t.Cleanup(func() {
+		m.Close()
+	})
 	return m
 }
